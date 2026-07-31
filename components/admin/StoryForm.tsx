@@ -1,0 +1,164 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft, LoaderCircle, Save, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import type { Category, Story, StoryInput } from "@/types/story";
+import { createClient } from "@/lib/supabase/client";
+import { saveStoryAction } from "@/lib/actions/story-actions";
+import { slugify, storyFormSchema, type StoryFormValues } from "@/lib/validations/story";
+import { ImageUploader, type PendingImage } from "./ImageUploader";
+
+async function upload(file: File, folder: "covers" | "stories") {
+  const supabase = createClient();
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+  const path = folder + "/" + crypto.randomUUID() + "-" + safeName;
+  const { error } = await supabase.storage.from("relationship-media").upload(path, file, { cacheControl: "31536000", upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from("relationship-media").getPublicUrl(path);
+  return { imageUrl: data.publicUrl, storagePath: path };
+}
+
+export function StoryForm({ categories, initialStory }: { categories: Category[]; initialStory?: Story | null }) {
+  const router = useRouter();
+  const [slugEdited, setSlugEdited] = useState(Boolean(initialStory));
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState(initialStory?.cover_image_url ?? "");
+  const [images, setImages] = useState<PendingImage[]>(
+    initialStory?.story_images.map((image) => ({
+      key: image.id,
+      id: image.id,
+      preview: image.image_url,
+      imageUrl: image.image_url,
+      storagePath: image.storage_path,
+      caption: image.caption ?? "",
+      altText: image.alt_text ?? "",
+    })) ?? [],
+  );
+  const [progress, setProgress] = useState(0);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<StoryFormValues>({
+    resolver: zodResolver(storyFormSchema),
+    defaultValues: {
+      title: initialStory?.title ?? "",
+      slug: initialStory?.slug ?? "",
+      eventDate: initialStory?.event_date ?? "",
+      location: initialStory?.location ?? "",
+      excerpt: initialStory?.excerpt ?? "",
+      content: initialStory?.content ?? "",
+      quote: initialStory?.quote ?? "",
+      categoryId: initialStory?.category_id ?? "",
+      status: initialStory?.status ?? "draft",
+      isFeatured: initialStory?.is_featured ?? false,
+    },
+  });
+  const titleField = register("title");
+
+  const submit = async (values: StoryFormValues) => {
+    if (!coverPreview && !coverFile) {
+      toast.error("Choose a cover image before saving.");
+      return;
+    }
+    try {
+      setProgress(5);
+      let cover = {
+        imageUrl: initialStory?.cover_image_url ?? "",
+        storagePath: initialStory?.cover_storage_path ?? "",
+      };
+      if (coverFile) {
+        cover = await upload(coverFile, "covers");
+        setProgress(30);
+      }
+      const uploadedImages = [];
+      for (let index = 0; index < images.length; index += 1) {
+        const image = images[index];
+        const stored = image.file
+          ? await upload(image.file, "stories")
+          : { imageUrl: image.imageUrl ?? image.preview, storagePath: image.storagePath ?? "" };
+        uploadedImages.push({
+          id: image.id,
+          ...stored,
+          caption: image.caption,
+          altText: image.altText,
+          displayOrder: index,
+        });
+        setProgress(30 + Math.round(((index + 1) / Math.max(1, images.length)) * 55));
+      }
+      const input: StoryInput = {
+        id: initialStory?.id,
+        ...values,
+        coverImageUrl: cover.imageUrl,
+        coverStoragePath: cover.storagePath,
+        additionalImages: uploadedImages,
+      };
+      const result = await saveStoryAction(input);
+      if (!result.success) {
+        toast.error(result.message);
+        setProgress(0);
+        return;
+      }
+      setProgress(100);
+      toast.success(result.message);
+      router.push("/admin/stories");
+      router.refresh();
+    } catch {
+      toast.error("Upload failed. Check your connection and Storage policies, then try again.");
+      setProgress(0);
+    }
+  };
+
+  return (
+    <form className="story-form" onSubmit={handleSubmit(submit)}>
+      <div className="admin-page-heading form-page-heading">
+        <div><Link href="/admin/stories"><ArrowLeft size={15} />Stories</Link><p className="eyebrow">{initialStory ? "Edit chapter" : "New chapter"}</p><h1>{initialStory ? initialStory.title : "Tell a new story."}</h1></div>
+        <button className="button primary" type="submit" disabled={isSubmitting}>{isSubmitting ? <LoaderCircle className="spin" /> : <Save size={16} />}{isSubmitting ? "Saving…" : "Save story"}</button>
+      </div>
+
+      <section className="form-section">
+        <div className="form-section-heading"><span>01</span><div><h2>The essentials</h2><p>Give this memory a date, a name, and enough context to find it later.</p></div></div>
+        <div className="form-grid">
+          <label className="wide">Title<input {...titleField} onChange={(event) => { titleField.onChange(event); if (!slugEdited) setValue("slug", slugify(event.target.value), { shouldValidate: true }); }} placeholder="The day everything felt different" />{errors.title && <small role="alert">{errors.title.message}</small>}</label>
+          <label>Slug<input {...register("slug")} onChange={(event) => { setSlugEdited(true); setValue("slug", event.target.value, { shouldValidate: true }); }} placeholder="the-day-everything-changed" />{errors.slug && <small role="alert">{errors.slug.message}</small>}</label>
+          <label>Event date<input type="date" {...register("eventDate")} />{errors.eventDate && <small role="alert">{errors.eventDate.message}</small>}</label>
+          <label>Location <em>optional</em><input {...register("location")} placeholder="A place worth remembering" /></label>
+          <label>Category<select {...register("categoryId")}><option value="">Uncategorised</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+        </div>
+      </section>
+
+      <section className="form-section">
+        <div className="form-section-heading"><span>02</span><div><h2>The story</h2><p>Plain text becomes paragraphs wherever you add an empty line.</p></div></div>
+        <div className="form-grid">
+          <label className="wide">Short introduction<textarea rows={3} {...register("excerpt")} placeholder="A short sentence that invites someone into the memory." />{errors.excerpt && <small role="alert">{errors.excerpt.message}</small>}</label>
+          <label className="wide">Full story<textarea rows={12} {...register("content")} placeholder={"Write the memory here.\n\nStart a new paragraph with an empty line."} />{errors.content && <small role="alert">{errors.content.message}</small>}</label>
+          <label className="wide">Favorite line <em>optional</em><input {...register("quote")} placeholder="A sentence you never want to forget" /></label>
+        </div>
+      </section>
+
+      <ImageUploader
+        coverPreview={coverPreview}
+        onCoverChange={(file, preview) => { if (coverPreview.startsWith("blob:")) URL.revokeObjectURL(coverPreview); setCoverFile(file); setCoverPreview(preview); }}
+        images={images}
+        onImagesChange={setImages}
+      />
+
+      <section className="form-section publishing-section">
+        <div className="form-section-heading"><span>04</span><div><h2>Publishing</h2><p>Drafts stay private. Published stories appear on the public website.</p></div></div>
+        <div className="publish-options">
+          <label>Status<select {...register("status")}><option value="draft">Draft</option><option value="published">Published</option></select></label>
+          <label className="check-row"><input type="checkbox" {...register("isFeatured")} /><span><Sparkles size={16} /><strong>Feature this story</strong><small>Show it prominently on the homepage.</small></span></label>
+        </div>
+      </section>
+      {progress > 0 && progress < 100 && <div className="upload-progress" role="status"><span style={{ width: progress + "%" }} /><p>Uploading photographs · {progress}%</p></div>}
+      <div className="form-actions"><Link className="button outline" href="/admin/stories">Cancel</Link><button className="button primary" type="submit" disabled={isSubmitting}>{isSubmitting ? <LoaderCircle className="spin" /> : <Save size={16} />}{isSubmitting ? "Saving story…" : "Save story"}</button></div>
+    </form>
+  );
+}
