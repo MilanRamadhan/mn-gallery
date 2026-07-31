@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, CalendarHeart } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CalendarHeart, Heart } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { RelationshipCounter } from "@/components/public/RelationshipCounter";
@@ -33,6 +33,7 @@ export default async function HomePage() {
           <div className="hero-image-wrap">
             <Image src={settings.hero_image_url || "/placeholders/hero.webp"} alt={"A placeholder hero portrait for " + settings.person_one + " and " + settings.person_two} fill priority sizes="(max-width: 800px) 100vw, 58vw" />
           </div>
+          <div className="hero-sticker"><Heart size={17} fill="currentColor" /><span>Our little universe</span></div>
           <span className="vertical-note">A life in little moments</span>
           <div className="hero-issue"><span>Vol. 01</span><small>Ongoing edition</small></div>
         </div>

@@ -16,7 +16,7 @@ insert into public.site_settings (
   '20000000-0000-4000-8000-000000000001',
   'Our Story',
   'Milan',
-  '[PARTNER_NAME]',
+  'Nora',
   '2024-02-14',
   'A collection of moments, memories, and everything between us.',
   'A small corner of the internet where we keep the memories we never want to forget.',
@@ -24,9 +24,9 @@ insert into public.site_settings (
   '/placeholders/couple.webp',
   'We built this archive to remember where we were, what we felt, and how an ordinary day became part of us.',
   'Some moments become memories. Some memories become a home.',
-  '#b85f7e',
+  '#f29abb',
   true,
-  'Our Story — Milan & [PARTNER_NAME]',
+  'Our Story — Milan & Nora',
   'A private relationship journal and memory gallery.'
 ) on conflict (id) do update set
   site_title = excluded.site_title,

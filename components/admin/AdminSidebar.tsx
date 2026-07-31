@@ -29,7 +29,7 @@ export function AdminSidebar({ email }: { email: string }) {
       <button className="admin-menu-button" type="button" aria-label="Open admin navigation" onClick={() => setOpen(true)}><Menu /></button>
       <aside className={"admin-sidebar " + (open ? "open" : "")}>
         <button className="admin-close" type="button" aria-label="Close admin navigation" onClick={() => setOpen(false)}><X /></button>
-        <Link className="admin-brand" href="/admin"><span>M + P</span><div><strong>Our Story</strong><small>Private archive</small></div></Link>
+        <Link className="admin-brand" href="/admin"><span>M + N</span><div><strong>Our Story</strong><small>Milan & Nora</small></div></Link>
         <nav aria-label="Admin navigation">
           {links.map((link) => {
             const active = link.href === "/admin" ? pathname === link.href : pathname.startsWith(link.href);

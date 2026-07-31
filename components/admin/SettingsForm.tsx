@@ -21,7 +21,7 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
     coupleStoragePath: settings.couple_storage_path ?? "",
     aboutContent: settings.about_content ?? "",
     quote: settings.quote ?? "",
-    accentColor: settings.accent_color ?? "#b85f7e",
+    accentColor: settings.accent_color ?? "#f29abb",
     isPublic: settings.is_public,
     seoTitle: settings.seo_title ?? "",
     seoDescription: settings.seo_description ?? "",

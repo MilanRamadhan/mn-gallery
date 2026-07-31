@@ -14,7 +14,7 @@ export function PublicFooter({ personOne, personTwo }: { personOne: string; pers
       </nav>
       <div className="footer-meta">
         <span>Made with care · {new Date().getFullYear()}</span>
-        <Link href="/admin/login">Private archive</Link>
+        <Link href="/admin/login">Edit our archive →</Link>
       </div>
     </footer>
   );

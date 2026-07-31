@@ -2,7 +2,7 @@ export const siteConfig = {
   // Replace these placeholders or update them from Admin → Settings after Supabase setup.
   title: "Our Story",
   personOne: "Milan",
-  personTwo: "[PARTNER_NAME]",
+  personTwo: "Nora",
   relationshipStartDate: "2024-02-14",
   tagline: "A collection of moments, memories, and everything between us.",
   description:
@@ -10,7 +10,7 @@ export const siteConfig = {
   openingMessage: "The story began quietly, then became the place we wanted to return to.",
   closingMessage: "Still choosing each other, one ordinary day at a time.",
   quote: "Some moments become memories. Some memories become a home.",
-  accentColor: "#b85f7e",
+  accentColor: "#f29abb",
   heroImage: "/placeholders/hero.webp",
   coupleImage: "/placeholders/couple.webp",
   placesVisited: 8,
