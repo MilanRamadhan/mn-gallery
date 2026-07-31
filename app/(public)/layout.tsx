@@ -5,7 +5,7 @@ import { getSiteSettings } from "@/lib/queries/stories";
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSiteSettings();
   return (
-    <div className="public-shell" style={{ "--accent": settings.accent_color ?? "#8f6659" } as React.CSSProperties}>
+    <div className="public-shell" style={{ "--accent": settings.accent_color ?? "#b85f7e" } as React.CSSProperties}>
       <PublicNavbar coupleName={settings.person_one + " & " + settings.person_two} />
       {children}
       <PublicFooter personOne={settings.person_one} personTwo={settings.person_two} />

@@ -24,7 +24,7 @@ insert into public.site_settings (
   '/placeholders/couple.webp',
   'We built this archive to remember where we were, what we felt, and how an ordinary day became part of us.',
   'Some moments become memories. Some memories become a home.',
-  '#8f6659',
+  '#b85f7e',
   true,
   'Our Story — Milan & [PARTNER_NAME]',
   'A private relationship journal and memory gallery.'

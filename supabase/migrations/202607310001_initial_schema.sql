@@ -62,7 +62,7 @@ create table if not exists public.site_settings (
   couple_storage_path text,
   about_content text,
   quote text,
-  accent_color text default '#8f6659',
+  accent_color text default '#b85f7e',
   is_public boolean not null default true,
   seo_title text,
   seo_description text,

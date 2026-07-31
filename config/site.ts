@@ -10,7 +10,7 @@ export const siteConfig = {
   openingMessage: "The story began quietly, then became the place we wanted to return to.",
   closingMessage: "Still choosing each other, one ordinary day at a time.",
   quote: "Some moments become memories. Some memories become a home.",
-  accentColor: "#8f6659",
+  accentColor: "#b85f7e",
   heroImage: "/placeholders/hero.webp",
   coupleImage: "/placeholders/couple.webp",
   placesVisited: 8,
