@@ -8,7 +8,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { Category, Story, StoryInput } from "@/types/story";
+import { createClientId } from "@/lib/client-id";
 import { createClient } from "@/lib/supabase/client";
+import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
 import { saveStoryAction } from "@/lib/actions/story-actions";
 import { slugify, storyFormSchema, type StoryFormValues } from "@/lib/validations/story";
 import { ImageUploader, type PendingImage } from "./ImageUploader";
@@ -17,10 +19,10 @@ async function upload(file: File, folder: "covers" | "stories") {
   const supabase = createClient();
   if (!supabase) throw new Error("Supabase is not configured.");
   const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
-  const path = folder + "/" + crypto.randomUUID() + "-" + safeName;
-  const { error } = await supabase.storage.from("relationship-media").upload(path, file, { cacheControl: "31536000", upsert: false });
+  const path = folder + "/" + createClientId() + "-" + safeName;
+  const { error } = await supabase.storage.from(SUPABASE_MEDIA_BUCKET).upload(path, file, { cacheControl: "31536000", upsert: false });
   if (error) throw error;
-  const { data } = supabase.storage.from("relationship-media").getPublicUrl(path);
+  const { data } = supabase.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(path);
   return { imageUrl: data.publicUrl, storagePath: path };
 }
 
@@ -110,8 +112,9 @@ export function StoryForm({ categories, initialStory }: { categories: Category[]
       toast.success(result.message);
       router.push("/admin/stories");
       router.refresh();
-    } catch {
-      toast.error("Upload failed. Check your connection and Storage policies, then try again.");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Unknown upload error";
+      toast.error("Upload failed: " + detail);
       setProgress(0);
     }
   };

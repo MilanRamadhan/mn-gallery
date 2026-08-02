@@ -1,8 +1,8 @@
 -- Replace the original setup placeholder without overwriting a custom partner name.
-alter table public.site_settings
+alter table milanora.site_settings
   alter column person_two set default 'Nora';
 
-update public.site_settings
+update milanora.site_settings
 set
   person_two = 'Nora',
   seo_title = case

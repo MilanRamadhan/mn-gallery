@@ -18,7 +18,7 @@ export const siteConfig = {
 } as const;
 
 export const uploadConfig = {
-  bucket: "relationship-media",
+  bucket: "milanora-media",
   maxBytes: 10 * 1024 * 1024,
   acceptedTypes: ["image/jpeg", "image/png", "image/webp", "image/avif"],
 } as const;

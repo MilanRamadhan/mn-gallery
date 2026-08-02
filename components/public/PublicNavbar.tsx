@@ -18,6 +18,7 @@ export function PublicNavbar({ coupleName }: { coupleName: string }) {
   const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const isQuietOpening = pathname === "/" && !scrolled;
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 24);
@@ -30,8 +31,8 @@ export function PublicNavbar({ coupleName }: { coupleName: string }) {
     <>
       <header className={"public-nav " + (scrolled || pathname !== "/" ? "solid" : "")}>
         <Link href="/" className="wordmark">
-          <span>{coupleName}</span>
-          <small>Our Story</small>
+          <span>{isQuietOpening ? "A little beginning" : coupleName}</span>
+          <small>{isQuietOpening ? "Scroll slowly" : "Our Story"}</small>
         </Link>
         <nav className="desktop-nav" aria-label="Primary navigation">
           {links.map((link) => (

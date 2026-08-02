@@ -1,12 +1,15 @@
 # Create the first admin
 
-1. Create a Supabase project.
-2. Open SQL Editor and run the initial schema file in supabase/migrations.
-3. Run supabase/seed.sql.
-4. Open Authentication → Users → Add user.
-5. Enter the private admin email and a strong password. Mark the email as confirmed.
-6. Copy the project URL and publishable key into .env.local.
-7. Restart the development server and sign in at /admin/login.
+1. In the shared Supabase project, expose `milanora` under Settings → Data API → Exposed schemas.
+2. Create the private admin under Authentication → Users and confirm the email.
+3. Open SQL Editor and run `supabase/migrations/202607310001_initial_schema.sql`.
+4. Run `supabase/seed.sql`.
+5. Confirm that Storage contains the public `milanora-media` bucket.
+6. Copy the project URL and publishable key into `.env.local`.
+7. Restart the development server and sign in at `/admin/login`.
+
+The migration is configured for admin UID `154f5164-d2e2-408d-a18b-5acb07c2a403`.
+If the admin account changes, update the UID in the migration before running it.
 
 ## Managing the journal
 
@@ -19,8 +22,9 @@
 - Set a story to **Draft** while writing; use **Published** when it is ready for
   the public Journey and Gallery pages.
 
-There is deliberately no public registration page. Any authenticated Supabase user can manage
-content under the included RLS policies, so only create accounts for trusted administrators.
+There is deliberately no public registration page. Only users listed in `milanora.admins` can
+open the admin area or modify MilaNora content. Other authenticated users in the shared project
+remain outside the MilaNora allowlist.
 
 The service-role key is not required by the current app flow. If you add it later, keep it
 server-only and never expose it through a NEXT_PUBLIC_ variable.

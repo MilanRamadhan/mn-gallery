@@ -1,13 +1,40 @@
 "use client";
 
 import { LoaderCircle, Save } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { createClientId } from "@/lib/client-id";
 import { saveSettingsAction } from "@/lib/actions/story-actions";
+import { createClient } from "@/lib/supabase/client";
+import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
 import type { SiteSettings } from "@/types/story";
+import { SettingsImagePicker } from "./SettingsImagePicker";
+
+type BrowserSupabaseClient = NonNullable<ReturnType<typeof createClient>>;
+
+async function uploadSettingsImage(
+  supabase: BrowserSupabaseClient,
+  file: File,
+  kind: "hero" | "couple",
+) {
+  const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-") || "photo";
+  const path = `settings/${kind}/${createClientId()}-${safeName}`;
+  const { error } = await supabase.storage
+    .from(SUPABASE_MEDIA_BUCKET)
+    .upload(path, file, { cacheControl: "31536000", upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(path);
+  return { imageUrl: data.publicUrl, storagePath: path };
+}
 
 export function SettingsForm({ settings }: { settings: SiteSettings }) {
-  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [coupleFile, setCoupleFile] = useState<File | null>(null);
+  const [heroPreview, setHeroPreview] = useState(settings.hero_image_url || "/placeholders/hero.webp");
+  const [couplePreview, setCouplePreview] = useState(settings.couple_image_url || "/placeholders/couple.webp");
   const [values, setValues] = useState({
     siteTitle: settings.site_title,
     personOne: settings.person_one,
@@ -28,16 +55,75 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
   });
   const update = <K extends keyof typeof values>(key: K, value: (typeof values)[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
-  const submit = (event: React.FormEvent) => {
+
+  useEffect(() => () => {
+    if (heroPreview.startsWith("blob:")) URL.revokeObjectURL(heroPreview);
+  }, [heroPreview]);
+  useEffect(() => () => {
+    if (couplePreview.startsWith("blob:")) URL.revokeObjectURL(couplePreview);
+  }, [couplePreview]);
+
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    startTransition(async () => {
+    setPending(true);
+    const uploadedPaths: string[] = [];
+    const supabase = heroFile || coupleFile ? createClient() : null;
+
+    if ((heroFile || coupleFile) && !supabase) {
+      toast.error("Supabase is not connected. Check the site configuration and try again.");
+      setPending(false);
+      return;
+    }
+
+    try {
+      let nextValues = { ...values };
+      if (heroFile && supabase) {
+        const uploaded = await uploadSettingsImage(supabase, heroFile, "hero");
+        uploadedPaths.push(uploaded.storagePath);
+        nextValues = { ...nextValues, heroImageUrl: uploaded.imageUrl, heroStoragePath: uploaded.storagePath };
+      }
+      if (coupleFile && supabase) {
+        const uploaded = await uploadSettingsImage(supabase, coupleFile, "couple");
+        uploadedPaths.push(uploaded.storagePath);
+        nextValues = { ...nextValues, coupleImageUrl: uploaded.imageUrl, coupleStoragePath: uploaded.storagePath };
+      }
+
       const result = await saveSettingsAction({
         id: settings.id === "00000000-0000-0000-0000-000000000000" ? undefined : settings.id,
-        ...values,
+        ...nextValues,
       });
-      if (result.success) toast.success(result.message);
-      else toast.error(result.message);
-    });
+      if (!result.success) {
+        if (uploadedPaths.length > 0 && supabase) {
+          await supabase.storage.from(SUPABASE_MEDIA_BUCKET).remove(uploadedPaths);
+        }
+        toast.error(result.message);
+        return;
+      }
+
+      const stalePaths = [
+        heroFile && values.heroStoragePath.startsWith("settings/") ? values.heroStoragePath : "",
+        coupleFile && values.coupleStoragePath.startsWith("settings/") ? values.coupleStoragePath : "",
+      ].filter(Boolean);
+      if (stalePaths.length > 0 && supabase) {
+        await supabase.storage.from(SUPABASE_MEDIA_BUCKET).remove(stalePaths);
+      }
+
+      setValues(nextValues);
+      setHeroFile(null);
+      setCoupleFile(null);
+      setHeroPreview(nextValues.heroImageUrl || "/placeholders/hero.webp");
+      setCouplePreview(nextValues.coupleImageUrl || "/placeholders/couple.webp");
+      toast.success(result.message);
+      router.refresh();
+    } catch (error) {
+      if (uploadedPaths.length > 0 && supabase) {
+        await supabase.storage.from(SUPABASE_MEDIA_BUCKET).remove(uploadedPaths);
+      }
+      const detail = error instanceof Error ? error.message : "Unknown upload error";
+      toast.error("Upload failed: " + detail);
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -63,15 +149,35 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
         </div>
       </section>
       <section className="settings-block">
-        <div><span>03</span><h2>Images & search</h2><p>Use Storage public URLs here, or keep the local placeholders until your photographs are ready.</p></div>
+        <div><span>03</span><h2>Images & search</h2><p>Choose, crop, and zoom the photographs used on the homepage and About Us.</p></div>
         <div className="settings-fields">
-          <label className="wide">Hero image URL<input value={values.heroImageUrl} onChange={(event) => update("heroImageUrl", event.target.value)} /></label>
-          <label className="wide">Couple image URL<input value={values.coupleImageUrl} onChange={(event) => update("coupleImageUrl", event.target.value)} /></label>
+          <SettingsImagePicker
+            title="Hero photograph"
+            description="Shown in the opening and reveal on the homepage."
+            preview={heroPreview}
+            selectedFileName={heroFile?.name}
+            disabled={pending}
+            onChange={(file, preview) => {
+              setHeroFile(file);
+              setHeroPreview(preview);
+            }}
+          />
+          <SettingsImagePicker
+            title="Couple photograph"
+            description="Shown as the main portrait on About Us."
+            preview={couplePreview}
+            selectedFileName={coupleFile?.name}
+            disabled={pending}
+            onChange={(file, preview) => {
+              setCoupleFile(file);
+              setCouplePreview(preview);
+            }}
+          />
           <label className="wide">SEO title<input value={values.seoTitle} onChange={(event) => update("seoTitle", event.target.value)} /></label>
           <label className="wide">SEO description<textarea rows={3} value={values.seoDescription} onChange={(event) => update("seoDescription", event.target.value)} /></label>
         </div>
       </section>
-      <div className="settings-save"><button className="button primary" type="submit" disabled={pending}>{pending ? <LoaderCircle className="spin" /> : <Save size={16} />}{pending ? "Saving…" : "Save settings"}</button></div>
+      <div className="settings-save"><button className="button primary" type="submit" disabled={pending}>{pending ? <LoaderCircle className="spin" /> : <Save size={16} />}{pending ? "Uploading & saving..." : "Save settings"}</button></div>
     </form>
   );
 }

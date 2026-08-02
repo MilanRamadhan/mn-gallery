@@ -1,12 +1,12 @@
 "use client";
 
 import { Edit3, Eye, EyeOff, Search, Sparkles, Trash2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteStoryAction, toggleStoryStatusAction } from "@/lib/actions/story-actions";
 import type { Category, Story } from "@/types/story";
+import { AppImage } from "@/components/shared/AppImage";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 export function StoryList({ stories, categories }: { stories: Story[]; categories: Category[] }) {
@@ -57,7 +57,7 @@ export function StoryList({ stories, categories }: { stories: Story[]; categorie
         {filtered.map((story) => (
           <article key={story.id}>
             <div className="admin-story-title">
-              <div><Image src={story.cover_image_url} alt="" fill sizes="72px" /></div>
+              <div><AppImage src={story.cover_image_url} alt="" fill sizes="72px" /></div>
               <span><strong>{story.title}</strong><small>{story.category?.name ?? "Uncategorised"}{story.is_featured && <> · <Sparkles size={11} /> Featured</>}</small></span>
             </div>
             <time>{story.event_date}</time>

@@ -7,7 +7,8 @@
   },
   "scripts": {
     "dev": "vinext dev",
-    "build": "vinext build",
+    "build": "next build",
+    "build:vinext": "vinext build",
     "start": "vinext start",
     "assets:placeholders": "node scripts/generate-placeholders.mjs",
     "typecheck": "tsc --noEmit",

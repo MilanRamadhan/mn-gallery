@@ -99,6 +99,14 @@ export async function getAdminStoryById(id: string): Promise<Story | null> {
 export async function getAdminUser() {
   const supabase = await createClient();
   if (!supabase) return null;
-  const { data } = await supabase.auth.getClaims();
-  return data?.claims ?? null;
+  const { data, error } = await supabase.auth.getClaims();
+  const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
+  if (error || !data?.claims || !userId) return null;
+  const { data: membership, error: membershipError } = await supabase
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (membershipError || !membership) return null;
+  return data.claims;
 }

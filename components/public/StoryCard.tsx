@@ -1,7 +1,7 @@
 import { ArrowUpRight, MapPin } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import type { Story } from "@/types/story";
+import { AppImage } from "@/components/shared/AppImage";
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(value + "T00:00:00Z"));
@@ -10,7 +10,7 @@ export function StoryCard({ story, priority = false, variant = "default" }: { st
   return (
     <article className={"story-card " + variant}>
       <Link href={"/story/" + story.slug} className="story-image">
-        <Image
+        <AppImage
           src={story.cover_image_url}
           alt={"Cover for " + story.title}
           fill

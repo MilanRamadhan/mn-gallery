@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
 import { categorySchema, settingsSchema, storyInputSchema } from "@/lib/validations/story";
 import type { ActionResult, StoryInput } from "@/types/story";
 
@@ -11,6 +12,18 @@ async function requireAdmin() {
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims) {
     return { supabase: null, error: "Your session has ended. Please sign in again." };
+  }
+  const userId = typeof data.claims.sub === "string" ? data.claims.sub : null;
+  if (!userId) {
+    return { supabase: null, error: "This account is not a MilaNora administrator." };
+  }
+  const { data: membership, error: membershipError } = await supabase
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (membershipError || !membership) {
+    return { supabase: null, error: "This account is not a MilaNora administrator." };
   }
   return { supabase, error: null };
 }
@@ -115,7 +128,7 @@ export async function saveStoryAction(
   const retained = new Set(value.additionalImages.map((image) => image.storagePath));
   const removedPaths = oldPaths.filter((path) => !retained.has(path));
   if (removedPaths.length) {
-    await auth.supabase.storage.from("relationship-media").remove(removedPaths);
+    await auth.supabase.storage.from(SUPABASE_MEDIA_BUCKET).remove(removedPaths);
   }
 
   revalidatePath("/");
@@ -151,7 +164,7 @@ export async function deleteStoryAction(id: string): Promise<ActionResult> {
   const { error } = await auth.supabase.from("stories").delete().eq("id", id);
   if (error) return { success: false, message: "This story could not be deleted." };
   const storageResult = paths.length
-    ? await auth.supabase.storage.from("relationship-media").remove(paths)
+    ? await auth.supabase.storage.from(SUPABASE_MEDIA_BUCKET).remove(paths)
     : { error: null };
   revalidatePath("/");
   revalidatePath("/journey");

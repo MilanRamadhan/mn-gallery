@@ -10,11 +10,11 @@ export function PublicFooter({ personOne, personTwo }: { personOne: string; pers
       <nav aria-label="Footer navigation">
         <Link href="/journey">Journey</Link>
         <Link href="/gallery">Gallery</Link>
+        <Link href="/admin/login">Archive</Link>
         <Link href="/about">About</Link>
       </nav>
       <div className="footer-meta">
         <span>Made with care · {new Date().getFullYear()}</span>
-        <Link href="/admin/login">Edit our archive →</Link>
       </div>
     </footer>
   );

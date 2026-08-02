@@ -58,27 +58,28 @@ into a Client Component.
 
 ## Supabase setup
 
-1. Create a Supabase project.
-2. In SQL Editor, run `supabase/migrations/202607310001_initial_schema.sql`.
-3. Run `supabase/seed.sql`.
-4. Confirm that Storage contains the public `relationship-media` bucket.
-5. Add the project URL and publishable key to `.env.local`.
-6. Restart the development server.
+1. Open the shared Supabase project.
+2. Under Settings → Data API, add `milanora` to Exposed schemas.
+3. In SQL Editor, run `supabase/migrations/202607310001_initial_schema.sql`.
+4. Run `supabase/seed.sql`.
+5. Confirm that Storage contains the public `milanora-media` bucket.
+6. Add the project URL and publishable key to `.env.local`.
+7. Restart the development server.
 
 The migration creates:
 
-- `profiles`
-- `categories`
-- `stories`
-- `story_images`
-- `site_settings`
+- `milanora.admins`
+- `milanora.categories`
+- `milanora.stories`
+- `milanora.story_images`
+- `milanora.site_settings`
 - indexes and updated-at triggers
 - RLS read/write policies
 - the Storage bucket, 10 MB limit, MIME restrictions, and Storage policies
 
-Anonymous visitors can only read published stories and their photographs. Authenticated users
-can manage content. Because public registration is intentionally absent, only create trusted
-admin accounts.
+Anonymous visitors can only read published stories and their photographs. The admin UUID is
+allowlisted in `milanora.admins`; unrelated authenticated users in the shared Supabase project
+cannot manage MilaNora content.
 
 ## Create the first admin
 

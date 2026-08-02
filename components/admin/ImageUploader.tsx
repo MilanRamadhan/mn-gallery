@@ -1,10 +1,12 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ImagePlus, Trash2, UploadCloud } from "lucide-react";
-import Image from "next/image";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { uploadConfig } from "@/config/site";
+import { AppImage } from "@/components/shared/AppImage";
+import { createClientId } from "@/lib/client-id";
+import { ImageCropDialog } from "./ImageCropDialog";
 
 export type PendingImage = {
   key: string;
@@ -15,6 +17,17 @@ export type PendingImage = {
   storagePath?: string;
   caption: string;
   altText: string;
+};
+
+type QueuedCrop = {
+  key: string;
+  file: File;
+  source: string;
+  target: "cover" | "gallery";
+  title: string;
+  aspectRatio: number;
+  outputWidth: number;
+  outputHeight: number;
 };
 
 function validFile(file: File) {
@@ -42,20 +55,60 @@ export function ImageUploader({
 }) {
   const coverInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
+  const cropQueueRef = useRef<QueuedCrop[]>([]);
+  const [cropQueue, setCropQueue] = useState<QueuedCrop[]>([]);
+
+  useEffect(() => {
+    cropQueueRef.current = cropQueue;
+  }, [cropQueue]);
+  useEffect(() => () => {
+    cropQueueRef.current.forEach((item) => URL.revokeObjectURL(item.source));
+  }, []);
+
+  const queueCrop = (file: File, target: QueuedCrop["target"]) => {
+    const isCover = target === "cover";
+    setCropQueue((current) => [
+      ...current,
+      {
+        key: createClientId(),
+        file,
+        source: URL.createObjectURL(file),
+        target,
+        title: isCover ? "Story cover" : "Gallery photograph",
+        aspectRatio: isCover ? 16 / 9 : 4 / 5,
+        outputWidth: isCover ? 1920 : 1600,
+        outputHeight: isCover ? 1080 : 2000,
+      },
+    ]);
+  };
 
   const addImages = (files: FileList | null) => {
     if (!files) return;
-    const incoming = Array.from(files).filter(validFile).slice(0, Math.max(0, 20 - images.length));
-    onImagesChange([
-      ...images,
-      ...incoming.map((file) => ({
-        key: crypto.randomUUID(),
-        preview: URL.createObjectURL(file),
-        file,
-        caption: "",
-        altText: "",
-      })),
-    ]);
+    const queuedGallery = cropQueue.filter((item) => item.target === "gallery").length;
+    const incoming = Array.from(files).filter(validFile).slice(0, Math.max(0, 20 - images.length - queuedGallery));
+    incoming.forEach((file) => queueCrop(file, "gallery"));
+  };
+
+  const activeCrop = cropQueue[0];
+
+  const removeActiveCrop = () => {
+    if (!activeCrop) return;
+    URL.revokeObjectURL(activeCrop.source);
+    setCropQueue((current) => current.slice(1));
+  };
+
+  const finishActiveCrop = (file: File) => {
+    if (!activeCrop) return;
+    const preview = URL.createObjectURL(file);
+    if (activeCrop.target === "cover") {
+      onCoverChange(file, preview);
+    } else {
+      onImagesChange([
+        ...images,
+        { key: createClientId(), preview, file, caption: "", altText: "" },
+      ]);
+    }
+    removeActiveCrop();
   };
 
   const move = (index: number, direction: -1 | 1) => {
@@ -72,7 +125,7 @@ export function ImageUploader({
       <div className="cover-uploader">
         <button type="button" onClick={() => coverInput.current?.click()}>
           {coverPreview ? (
-            <Image src={coverPreview} alt="Cover image preview" fill unoptimized={coverPreview.startsWith("blob:")} sizes="(max-width: 760px) 100vw, 48vw" />
+            <AppImage src={coverPreview} alt="Cover image preview" fill unoptimized={coverPreview.startsWith("blob:")} sizes="(max-width: 760px) 100vw, 48vw" />
           ) : (
             <span><UploadCloud /><strong>Choose a cover image</strong><small>Required · one large editorial photograph</small></span>
           )}
@@ -85,20 +138,21 @@ export function ImageUploader({
           hidden
           onChange={(event) => {
             const file = event.target.files?.[0];
-            if (file && validFile(file)) onCoverChange(file, URL.createObjectURL(file));
+            if (file && validFile(file)) queueCrop(file, "cover");
+            event.currentTarget.value = "";
           }}
         />
       </div>
       <div className="gallery-upload-heading">
-        <div><h3>Additional photographs</h3><p>Add captions and useful alt text for every image.</p></div>
+        <div><h3>Additional photographs</h3><p>Each selected photo opens in the crop editor before captions are added.</p></div>
         <button className="button outline" type="button" onClick={() => galleryInput.current?.click()}><ImagePlus size={16} />Add photos</button>
-        <input ref={galleryInput} type="file" multiple accept={uploadConfig.acceptedTypes.join(",")} hidden onChange={(event) => addImages(event.target.files)} />
+        <input ref={galleryInput} type="file" multiple accept={uploadConfig.acceptedTypes.join(",")} hidden onChange={(event) => { addImages(event.target.files); event.currentTarget.value = ""; }} />
       </div>
       {images.length > 0 && (
         <div className="sortable-images">
           {images.map((image, index) => (
             <article key={image.key}>
-              <div className="sortable-preview"><Image src={image.preview} alt="" fill unoptimized={image.preview.startsWith("blob:")} sizes="120px" /></div>
+              <div className="sortable-preview"><AppImage src={image.preview} alt="" fill unoptimized={image.preview.startsWith("blob:")} sizes="120px" /></div>
               <div className="sortable-fields">
                 <label>Caption<input value={image.caption} maxLength={240} onChange={(event) => onImagesChange(images.map((item) => item.key === image.key ? { ...item, caption: event.target.value } : item))} placeholder="What was happening here?" /></label>
                 <label>Alt text<input value={image.altText} maxLength={240} onChange={(event) => onImagesChange(images.map((item) => item.key === image.key ? { ...item, altText: event.target.value } : item))} placeholder="Describe the photograph" /></label>
@@ -111,6 +165,19 @@ export function ImageUploader({
             </article>
           ))}
         </div>
+      )}
+      {activeCrop && (
+        <ImageCropDialog
+          key={activeCrop.key}
+          source={activeCrop.source}
+          fileName={activeCrop.file.name}
+          title={activeCrop.title}
+          aspectRatio={activeCrop.aspectRatio}
+          outputWidth={activeCrop.outputWidth}
+          outputHeight={activeCrop.outputHeight}
+          onCancel={removeActiveCrop}
+          onComplete={finishActiveCrop}
+        />
       )}
     </section>
   );

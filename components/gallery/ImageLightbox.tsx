@@ -2,9 +2,9 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ExternalLink, X } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { AppImage } from "@/components/shared/AppImage";
 
 export type GalleryImage = {
   id: string;
@@ -87,7 +87,7 @@ export default function ImageLightbox({
             initial={reducedMotion ? false : { opacity: 0, scale: 0.985 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <Image src={item.url} alt={item.alt} fill sizes="95vw" />
+            <AppImage src={item.url} alt={item.alt} fill sizes="95vw" />
           </motion.div>
           <button className="lightbox-arrow next" type="button" aria-label="Next image" onClick={onNext}><ArrowRight /></button>
           <div className="lightbox-caption">

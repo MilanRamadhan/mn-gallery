@@ -1,11 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { Category, Story } from "@/types/story";
 import type { GalleryImage } from "./ImageLightbox";
 import { EmptyState } from "@/components/public/EmptyState";
+import { AppImage } from "@/components/shared/AppImage";
 
 const ImageLightbox = dynamic(() => import("./ImageLightbox"), { ssr: false });
 
@@ -79,7 +79,7 @@ export function GalleryExplorer({ stories, categories }: { stories: Story[]; cat
               onClick={() => setActiveId(image.id)}
               aria-label={"Open " + image.caption}
             >
-              <Image src={image.url} alt={image.alt} fill sizes="(max-width: 620px) 48vw, (max-width: 1000px) 32vw, 24vw" />
+              <AppImage src={image.url} alt={image.alt} fill sizes="(max-width: 620px) 48vw, (max-width: 1000px) 32vw, 24vw" />
               <span><small>{image.date.slice(0, 4)}</small><strong>{image.storyTitle}</strong></span>
             </button>
           ))}

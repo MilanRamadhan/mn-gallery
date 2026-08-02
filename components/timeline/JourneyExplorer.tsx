@@ -1,11 +1,11 @@
 "use client";
 
 import { ArrowUpRight, MapPin } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Category, Story } from "@/types/story";
 import { EmptyState } from "@/components/public/EmptyState";
+import { AppImage } from "@/components/shared/AppImage";
 
 export function JourneyExplorer({ stories, categories }: { stories: Story[]; categories: Category[] }) {
   const years = Array.from(new Set(stories.map((story) => story.event_date.slice(0, 4)))).sort().reverse();
@@ -49,7 +49,7 @@ export function JourneyExplorer({ stories, categories }: { stories: Story[]; cat
               <div className="timeline-dot"><span>{String(index + 1).padStart(2, "0")}</span></div>
               <div className="timeline-card">
                 <Link href={"/story/" + story.slug} className="timeline-image">
-                  <Image src={story.cover_image_url} alt={"Cover for " + story.title} fill sizes="(max-width: 760px) 92vw, 42vw" />
+                  <AppImage src={story.cover_image_url} alt={"Cover for " + story.title} fill sizes="(max-width: 760px) 92vw, 42vw" />
                 </Link>
                 <div>
                   <p className="eyebrow">{story.category?.name ?? "Memory"}</p>

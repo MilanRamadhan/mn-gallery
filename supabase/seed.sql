@@ -1,4 +1,4 @@
-insert into public.categories (id, name, slug, description, icon) values
+insert into milanora.categories (id, name, slug, description, icon) values
   ('10000000-0000-4000-8000-000000000001', 'First Moments', 'first-moments', 'The beginnings we never want to forget.', 'Sparkles'),
   ('10000000-0000-4000-8000-000000000002', 'Dates', 'dates', 'Time set aside for us.', 'Heart'),
   ('10000000-0000-4000-8000-000000000003', 'Trips', 'trips', 'Places that became part of our story.', 'Map'),
@@ -8,7 +8,7 @@ insert into public.categories (id, name, slug, description, icon) values
   ('10000000-0000-4000-8000-000000000007', 'Special Memories', 'special-memories', 'The ones that still make time pause.', 'BookHeart')
 on conflict (slug) do update set name = excluded.name, description = excluded.description, icon = excluded.icon;
 
-insert into public.site_settings (
+insert into milanora.site_settings (
   id, site_title, person_one, person_two, relationship_start_date, tagline,
   description, hero_image_url, couple_image_url, about_content, quote,
   accent_color, is_public, seo_title, seo_description
@@ -36,7 +36,7 @@ insert into public.site_settings (
   tagline = excluded.tagline,
   description = excluded.description;
 
-insert into public.stories (
+insert into milanora.stories (
   id, title, slug, excerpt, content, event_date, location, quote,
   cover_image_url, cover_storage_path, category_id, status, is_featured, display_order
 ) values
@@ -90,7 +90,7 @@ insert into public.stories (
   )
 on conflict (slug) do nothing;
 
-insert into public.story_images (
+insert into milanora.story_images (
   id, story_id, image_url, storage_path, caption, alt_text, display_order
 ) values
   (

@@ -1,7 +1,7 @@
 import { ArrowUpRight, BookOpenText, FilePenLine, FolderHeart, Images, Plus, Sparkles } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { DashboardStat } from "@/components/admin/DashboardStat";
+import { AppImage } from "@/components/shared/AppImage";
 import { getAdminStories, getCategories } from "@/lib/queries/stories";
 
 export default async function AdminDashboard() {
@@ -27,7 +27,7 @@ export default async function AdminDashboard() {
           <div className="admin-section-heading"><div><p className="eyebrow">Recently touched</p><h2>Latest stories</h2></div><Link href="/admin/stories">Manage all <ArrowUpRight size={14} /></Link></div>
           {stories.slice(0, 5).map((story) => (
             <Link key={story.id} href={"/admin/stories/" + story.id + "/edit"}>
-              <div><Image src={story.cover_image_url} alt="" fill sizes="64px" /></div>
+              <div><AppImage src={story.cover_image_url} alt="" fill sizes="64px" /></div>
               <span><strong>{story.title}</strong><small>{story.event_date} · {story.status}</small></span>
               <ArrowUpRight size={15} />
             </Link>

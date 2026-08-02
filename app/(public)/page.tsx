@@ -1,9 +1,10 @@
-import { ArrowDownRight, ArrowUpRight, CalendarHeart, Heart } from "lucide-react";
-import Image from "next/image";
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { HomeHero } from "@/components/public/HomeHero";
 import { RelationshipCounter } from "@/components/public/RelationshipCounter";
 import { SectionHeading } from "@/components/public/SectionHeading";
 import { StoryCard } from "@/components/public/StoryCard";
+import { AppImage } from "@/components/shared/AppImage";
 import { getFeaturedStories, getPublishedStories, getSiteSettings } from "@/lib/queries/stories";
 
 export default async function HomePage() {
@@ -18,26 +19,7 @@ export default async function HomePage() {
 
   return (
     <main>
-      <section className="home-hero">
-        <div className="hero-copy">
-          <p className="eyebrow">A personal archive · Est. {settings.relationship_start_date.slice(0, 4)}</p>
-          <h1>{settings.person_one} <em>&</em><br />{settings.person_two}</h1>
-          <p className="hero-tagline">{settings.tagline}</p>
-          <div className="hero-actions">
-            <Link className="button primary" href="/journey">Explore our story <ArrowDownRight size={17} /></Link>
-            <Link className="button text" href="/gallery">View gallery <ArrowUpRight size={16} /></Link>
-          </div>
-          <div className="hero-date"><CalendarHeart size={17} /><span>Our story began</span><time>{settings.relationship_start_date}</time></div>
-        </div>
-        <div className="hero-visual">
-          <div className="hero-image-wrap">
-            <Image src={settings.hero_image_url || "/placeholders/hero.webp"} alt={"A placeholder hero portrait for " + settings.person_one + " and " + settings.person_two} fill priority sizes="(max-width: 800px) 100vw, 58vw" />
-          </div>
-          <div className="hero-sticker"><Heart size={17} fill="currentColor" /><span>Our little universe</span></div>
-          <span className="vertical-note">A life in little moments</span>
-          <div className="hero-issue"><span>Vol. 01</span><small>Ongoing edition</small></div>
-        </div>
-      </section>
+      <HomeHero settings={settings} />
 
       <section className="counter-section">
         <p className="eyebrow">Since the day we chose us</p>
@@ -84,7 +66,7 @@ export default async function HomePage() {
         <div className="gallery-preview">
           {gallery.map((image, index) => (
             <div key={image + index} className={"preview-photo photo-" + index}>
-              <Image src={image} alt="Relationship memory placeholder" fill sizes="(max-width: 700px) 48vw, 24vw" />
+              <AppImage src={image} alt="Relationship memory placeholder" fill sizes="(max-width: 700px) 48vw, 24vw" />
             </div>
           ))}
         </div>

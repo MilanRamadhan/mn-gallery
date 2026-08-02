@@ -1,8 +1,8 @@
 import { ArrowLeft, ArrowRight, CalendarDays, MapPin } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AppImage } from "@/components/shared/AppImage";
 import { getPublishedStories, getStoryBySlug } from "@/lib/queries/stories";
 
 type StoryPageProps = { params: Promise<{ slug: string }> };
@@ -36,7 +36,7 @@ export default async function StoryPage({ params }: StoryPageProps) {
         </div>
       </header>
       <div className="story-cover">
-        <Image src={story.cover_image_url} alt={"Cover for " + story.title} fill priority sizes="100vw" />
+        <AppImage src={story.cover_image_url} alt={"Cover for " + story.title} fill priority sizes="100vw" />
         <span>Story no. {String(currentIndex + 1).padStart(2, "0")}</span>
       </div>
       <article className="story-article">
@@ -50,7 +50,7 @@ export default async function StoryPage({ params }: StoryPageProps) {
         <section className="story-gallery">
           {story.story_images.sort((a, b) => a.display_order - b.display_order).map((image, index) => (
             <figure key={image.id} className={"story-figure figure-" + (index % 3)}>
-              <div><Image src={image.image_url} alt={image.alt_text || "Photo from " + story.title} fill sizes="(max-width: 700px) 100vw, 72vw" /></div>
+              <div><AppImage src={image.image_url} alt={image.alt_text || "Photo from " + story.title} fill sizes="(max-width: 700px) 100vw, 72vw" /></div>
               {image.caption && <figcaption><span>{String(index + 1).padStart(2, "0")}</span>{image.caption}</figcaption>}
             </figure>
           ))}

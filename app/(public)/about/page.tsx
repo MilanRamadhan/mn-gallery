@@ -1,7 +1,7 @@
 import { CalendarHeart, Images, MapPinned, NotebookText } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { RelationshipCounter } from "@/components/public/RelationshipCounter";
+import { AppImage } from "@/components/shared/AppImage";
 import { getPublishedStories, getSiteSettings } from "@/lib/queries/stories";
 
 export const metadata: Metadata = {
@@ -17,7 +17,7 @@ export default async function AboutPage() {
     <main className="about-page">
       <header className="about-hero">
         <div className="about-title"><p className="eyebrow">About us</p><h1>Two people,<br /><em>one growing archive.</em></h1></div>
-        <div className="about-portrait"><Image src={settings.couple_image_url || "/placeholders/couple.webp"} alt={"Portrait placeholder for " + settings.person_one + " and " + settings.person_two} fill priority sizes="(max-width: 800px) 92vw, 50vw" /></div>
+        <div className="about-portrait"><AppImage src={settings.couple_image_url || "/placeholders/couple.webp"} alt={"Portrait placeholder for " + settings.person_one + " and " + settings.person_two} fill priority sizes="(max-width: 800px) 92vw, 50vw" /></div>
         <p className="about-intro">{settings.about_content}</p>
       </header>
       <section className="about-stats">
