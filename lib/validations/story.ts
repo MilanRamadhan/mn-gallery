@@ -4,6 +4,7 @@ export const storyInputSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().trim().min(3, "Title must contain at least 3 characters.").max(120),
   slug: z.string().trim().min(3).max(140).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
+  displayOrder: z.number().int("Story number must be a whole number.").min(1, "Story number starts at 1.").max(999),
   excerpt: z.string().trim().min(12, "Write a slightly longer introduction.").max(320),
   content: z.string().trim().min(30, "The story needs at least 30 characters."),
   eventDate: z.string().date("Choose a valid event date."),
@@ -29,6 +30,7 @@ export const storyInputSchema = z.object({
 export const storyFormSchema = storyInputSchema.pick({
   title: true,
   slug: true,
+  displayOrder: true,
   excerpt: true,
   content: true,
   eventDate: true,

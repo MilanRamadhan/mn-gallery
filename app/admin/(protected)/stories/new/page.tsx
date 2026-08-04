@@ -1,6 +1,7 @@
 import { StoryForm } from "@/components/admin/StoryForm";
-import { getCategories } from "@/lib/queries/stories";
+import { getAdminStories, getCategories } from "@/lib/queries/stories";
 
 export default async function NewStoryPage() {
-  return <StoryForm categories={await getCategories()} />;
+  const [categories, stories] = await Promise.all([getCategories(), getAdminStories()]);
+  return <StoryForm categories={categories} suggestedStoryNumber={stories.length + 1} />;
 }

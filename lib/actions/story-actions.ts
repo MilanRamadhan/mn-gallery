@@ -6,6 +6,56 @@ import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
 import { categorySchema, settingsSchema, storyInputSchema } from "@/lib/validations/story";
 import type { ActionResult, StoryInput } from "@/types/story";
 
+type StoryOrderClient = NonNullable<Awaited<ReturnType<typeof createClient>>>;
+type StoryOrderRow = {
+  id: string;
+  display_order: number;
+  event_date: string;
+  created_at: string;
+};
+
+function compareStoryOrder(first: StoryOrderRow, second: StoryOrderRow) {
+  const firstOrder = first.display_order > 0 ? first.display_order : Number.MAX_SAFE_INTEGER;
+  const secondOrder = second.display_order > 0 ? second.display_order : Number.MAX_SAFE_INTEGER;
+  return (
+    firstOrder - secondOrder ||
+    first.event_date.localeCompare(second.event_date) ||
+    first.created_at.localeCompare(second.created_at)
+  );
+}
+
+async function refreshStoryOrder(
+  supabase: StoryOrderClient,
+  movedStoryId?: string,
+  requestedPosition?: number,
+) {
+  const { data, error } = await supabase
+    .from("stories")
+    .select("id, display_order, event_date, created_at");
+  if (error || !data) return false;
+
+  const rows = (data as StoryOrderRow[]).sort(compareStoryOrder);
+  if (movedStoryId && requestedPosition) {
+    const movedStory = rows.find((row) => row.id === movedStoryId);
+    if (!movedStory) return false;
+    const remaining = rows.filter((row) => row.id !== movedStoryId);
+    const targetIndex = Math.min(Math.max(requestedPosition - 1, 0), remaining.length);
+    remaining.splice(targetIndex, 0, movedStory);
+    rows.splice(0, rows.length, ...remaining);
+  }
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const expectedOrder = index + 1;
+    if (rows[index].display_order === expectedOrder) continue;
+    const { error: updateError } = await supabase
+      .from("stories")
+      .update({ display_order: expectedOrder })
+      .eq("id", rows[index].id);
+    if (updateError) return false;
+  }
+  return true;
+}
+
 async function requireAdmin() {
   const supabase = await createClient();
   if (!supabase) return { supabase: null, error: "Connect Supabase before saving content." };
@@ -48,6 +98,7 @@ export async function saveStoryAction(
   const record = {
     title: value.title,
     slug: value.slug,
+    display_order: value.displayOrder,
     excerpt: value.excerpt,
     content: value.content,
     event_date: value.eventDate,
@@ -92,6 +143,12 @@ export async function saveStoryAction(
           : "The story could not be saved. Please try again.",
     };
   }
+
+  const orderRefreshed = await refreshStoryOrder(
+    auth.supabase,
+    story.id,
+    value.displayOrder,
+  );
 
   if (value.id) {
     const { error: imageDeleteError } = await auth.supabase
@@ -138,7 +195,13 @@ export async function saveStoryAction(
   revalidatePath("/admin/stories");
   return {
     success: true,
-    message: value.id ? "Story updated." : "Story created.",
+    message: orderRefreshed
+      ? value.id
+        ? "Story updated and renumbered."
+        : "Story created and placed in the journey."
+      : value.id
+        ? "Story updated, but its number could not be refreshed."
+        : "Story created, but its number could not be refreshed.",
     data: story as { id: string; slug: string },
   };
 }
@@ -163,6 +226,7 @@ export async function deleteStoryAction(id: string): Promise<ActionResult> {
     : [];
   const { error } = await auth.supabase.from("stories").delete().eq("id", id);
   if (error) return { success: false, message: "This story could not be deleted." };
+  const orderRefreshed = await refreshStoryOrder(auth.supabase);
   const storageResult = paths.length
     ? await auth.supabase.storage.from(SUPABASE_MEDIA_BUCKET).remove(paths)
     : { error: null };
@@ -174,7 +238,9 @@ export async function deleteStoryAction(id: string): Promise<ActionResult> {
     success: true,
     message: storageResult.error
       ? "Story deleted. A storage file still needs manual cleanup."
-      : "Story and its images were deleted.",
+      : orderRefreshed
+        ? "Story and its images were deleted. The remaining stories were renumbered."
+        : "Story deleted, but the remaining story numbers need another save.",
   };
 }
 

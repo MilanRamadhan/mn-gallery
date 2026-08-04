@@ -26,17 +26,29 @@ const defaultSettings: SiteSettings = {
 
 const storySelect = "*, category:categories(*), story_images(*)";
 
+function byJourneyOrder(first: Story, second: Story) {
+  const firstOrder = first.display_order > 0 ? first.display_order : Number.MAX_SAFE_INTEGER;
+  const secondOrder = second.display_order > 0 ? second.display_order : Number.MAX_SAFE_INTEGER;
+  return (
+    firstOrder - secondOrder ||
+    first.event_date.localeCompare(second.event_date) ||
+    first.created_at.localeCompare(second.created_at)
+  );
+}
+
+export function orderStoriesByJourney(stories: Story[]) {
+  return [...stories].sort(byJourneyOrder);
+}
+
 export async function getPublishedStories(): Promise<Story[]> {
   const supabase = await createClient();
-  if (!supabase) return demoStories;
+  if (!supabase) return orderStoriesByJourney(demoStories);
   const { data, error } = await supabase
     .from("stories")
     .select(storySelect)
-    .eq("status", "published")
-    .order("event_date", { ascending: false })
-    .order("display_order", { ascending: true });
+    .eq("status", "published");
   if (error || !data) return demoStories;
-  return data as unknown as Story[];
+  return orderStoriesByJourney(data as unknown as Story[]);
 }
 
 export async function getFeaturedStories() {

@@ -67,6 +67,7 @@ export type StoryInput = {
   id?: string;
   title: string;
   slug: string;
+  displayOrder: number;
   excerpt: string;
   content: string;
   eventDate: string;

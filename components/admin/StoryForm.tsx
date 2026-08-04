@@ -26,7 +26,15 @@ async function upload(file: File, folder: "covers" | "stories") {
   return { imageUrl: data.publicUrl, storagePath: path };
 }
 
-export function StoryForm({ categories, initialStory }: { categories: Category[]; initialStory?: Story | null }) {
+export function StoryForm({
+  categories,
+  initialStory,
+  suggestedStoryNumber = 1,
+}: {
+  categories: Category[];
+  initialStory?: Story | null;
+  suggestedStoryNumber?: number;
+}) {
   const router = useRouter();
   const [slugEdited, setSlugEdited] = useState(Boolean(initialStory));
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -53,6 +61,7 @@ export function StoryForm({ categories, initialStory }: { categories: Category[]
     defaultValues: {
       title: initialStory?.title ?? "",
       slug: initialStory?.slug ?? "",
+      displayOrder: suggestedStoryNumber,
       eventDate: initialStory?.event_date ?? "",
       location: initialStory?.location ?? "",
       excerpt: initialStory?.excerpt ?? "",
@@ -131,6 +140,7 @@ export function StoryForm({ categories, initialStory }: { categories: Category[]
         <div className="form-grid">
           <label className="wide">Title<input {...titleField} onChange={(event) => { titleField.onChange(event); if (!slugEdited) setValue("slug", slugify(event.target.value), { shouldValidate: true }); }} placeholder="The day everything felt different" />{errors.title && <small role="alert">{errors.title.message}</small>}</label>
           <label>Slug<input {...register("slug")} onChange={(event) => { setSlugEdited(true); setValue("slug", event.target.value, { shouldValidate: true }); }} placeholder="the-day-everything-changed" />{errors.slug && <small role="alert">{errors.slug.message}</small>}</label>
+          <label>Story number<input type="number" min="1" step="1" inputMode="numeric" {...register("displayOrder", { valueAsNumber: true })} />{errors.displayOrder ? <small role="alert">{errors.displayOrder.message}</small> : <small className="field-hint">Choose its position in your journey. The other stories will move automatically.</small>}</label>
           <label>Event date<input type="date" {...register("eventDate")} />{errors.eventDate && <small role="alert">{errors.eventDate.message}</small>}</label>
           <label>Location <em>optional</em><input {...register("location")} placeholder="A place worth remembering" /></label>
           <label>Category<select {...register("categoryId")}><option value="">Uncategorised</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>

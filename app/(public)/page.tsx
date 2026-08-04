@@ -21,7 +21,7 @@ export default async function HomePage() {
     <main>
       <HomeHero settings={settings} />
 
-      <section className="counter-section">
+      <section className="counter-section" id="the-story-begins">
         <p className="eyebrow">Since the day we chose us</p>
         <RelationshipCounter startDate={settings.relationship_start_date} now={now} />
       </section>

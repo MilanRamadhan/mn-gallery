@@ -19,8 +19,8 @@ export default async function StoryPage({ params }: StoryPageProps) {
   const [story, stories] = await Promise.all([getStoryBySlug(slug), getPublishedStories()]);
   if (!story) notFound();
   const currentIndex = stories.findIndex((item) => item.id === story.id);
-  const previous = currentIndex < stories.length - 1 ? stories[currentIndex + 1] : null;
-  const next = currentIndex > 0 ? stories[currentIndex - 1] : null;
+  const previous = currentIndex > 0 ? stories[currentIndex - 1] : null;
+  const next = currentIndex < stories.length - 1 ? stories[currentIndex + 1] : null;
   const paragraphs = story.content.split(/\n{2,}/).filter(Boolean);
 
   return (

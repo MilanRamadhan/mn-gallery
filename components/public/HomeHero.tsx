@@ -1,163 +1,181 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowDownRight, ArrowUpRight, CalendarHeart, Heart } from "lucide-react";
+import { ArrowDown, ArrowUpRight, CalendarHeart, MousePointer2 } from "lucide-react";
 import Link from "next/link";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { AppImage } from "@/components/shared/AppImage";
 import type { SiteSettings } from "@/types/story";
 
-const littleMoments = [
-  { label: "one simple hello", className: "fragment-one" },
-  { label: "one more conversation", className: "fragment-two" },
-  { label: "a feeling that stayed", className: "fragment-three" },
-];
-
 export function HomeHero({ settings }: { settings: SiteSettings }) {
   const reducedMotion = useReducedMotion();
-  const revealMotion = reducedMotion
-    ? {}
-    : { opacity: [0, 1], y: [28, 0], filter: ["blur(8px)", "blur(0px)"] };
+  const heroImage = settings.hero_image_url || "/placeholders/hero.webp";
+  const startDate = new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(settings.relationship_start_date + "T00:00:00Z"));
+
+  const moveReveal = (event: ReactPointerEvent<HTMLElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = Math.min(90, Math.max(10, ((event.clientX - bounds.left) / bounds.width) * 100));
+    const y = Math.min(88, Math.max(12, ((event.clientY - bounds.top) / bounds.height) * 100));
+    event.currentTarget.style.setProperty("--reveal-x", `${x}%`);
+    event.currentTarget.style.setProperty("--reveal-y", `${y}%`);
+  };
+
+  const resetReveal = (event: ReactPointerEvent<HTMLElement>) => {
+    event.currentTarget.style.setProperty("--reveal-x", "68%");
+    event.currentTarget.style.setProperty("--reveal-y", "42%");
+  };
 
   return (
-    <section className="cinematic-hero" aria-label="The beginning of Milan and Nora's story">
-      <div className="hero-hook-stage">
-        <div className="hero-hook-image" aria-hidden="true">
+    <section
+      className="cinematic-hero love-reveal-hero"
+      aria-label="An interactive introduction to Milan and Nora's story"
+      onPointerMove={moveReveal}
+      onPointerLeave={resetReveal}
+    >
+      <div className="love-reveal-backdrop" aria-hidden="true">
+        <AppImage src={heroImage} alt="" fill priority sizes="100vw" />
+      </div>
+
+      <motion.div
+        className="love-photo love-photo-base"
+        initial={reducedMotion ? false : { opacity: 0, scale: 1.08 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: reducedMotion ? 0 : 1.35, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="love-photo-frame">
           <AppImage
-            src={settings.hero_image_url || "/placeholders/hero.webp"}
-            alt=""
+            src={heroImage}
+            alt={`A memory from ${settings.person_one} and ${settings.person_two}'s story`}
             fill
             priority
-            sizes="100vw"
+            sizes="(min-width: 761px) 50vw, 100vw"
           />
         </div>
-        <div className="hero-hook-grid" aria-hidden="true" />
+      </motion.div>
 
+      <motion.div
+        className="love-photo love-photo-color"
+        aria-hidden="true"
+        initial={reducedMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: reducedMotion ? 0 : 0.65, duration: reducedMotion ? 0 : 1 }}
+      >
+        <div className="love-photo-frame">
+          <AppImage src={heroImage} alt="" fill priority sizes="(min-width: 761px) 50vw, 100vw" />
+        </div>
+      </motion.div>
+
+      <div className="love-reveal-shade" aria-hidden="true" />
+      <div className="love-reveal-grid" aria-hidden="true" />
+      <div className="love-reveal-noise" aria-hidden="true" />
+
+      <motion.div
+        className="love-reveal-label"
+        aria-hidden="true"
+        initial={reducedMotion ? false : { opacity: 0, scale: 0.7 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 1.35, duration: 0.6 }}
+      >
+        <MousePointer2 size={13} />
+        <span>Move to reveal us</span>
+      </motion.div>
+
+      <div className="love-reveal-copy">
         <motion.div
-          className="hero-hook-copy"
-          initial={reducedMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          className="love-reveal-kicker"
+          initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.65 }}
         >
-          <motion.p
-            className="hook-kicker"
-            initial={reducedMotion ? false : { opacity: 0, y: 14 }}
-            animate={revealMotion}
-            transition={{ delay: 0.2, duration: 0.7 }}
-          >
-            Not every love story begins loudly
-          </motion.p>
-          <h1>
-            <motion.span
-              initial={reducedMotion ? false : { opacity: 0, y: 34 }}
-              animate={revealMotion}
-              transition={{ delay: 0.45, duration: 0.85 }}
-            >
-              Some stories
-            </motion.span>
-            <motion.em
-              initial={reducedMotion ? false : { opacity: 0, y: 34 }}
-              animate={revealMotion}
-              transition={{ delay: 0.75, duration: 0.85 }}
-            >
-              begin quietly.
-            </motion.em>
-          </h1>
-          <motion.p
-            className="hook-lede"
-            initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-            animate={revealMotion}
-            transition={{ delay: 1.1, duration: 0.75 }}
-          >
-            A late reply. An ordinary day. One small reason to keep the conversation going.
-          </motion.p>
+          <span>Before there was a story</span>
+          <i />
+          <span>there was one conversation</span>
         </motion.div>
 
-        <div className="hook-fragments" aria-hidden="true">
-          {littleMoments.map((moment, index) => (
+        <h1>
+          <span className="love-line-mask">
             <motion.span
-              key={moment.label}
-              className={moment.className}
-              initial={reducedMotion ? false : { opacity: 0, scale: 0.82 }}
-              animate={
-                reducedMotion
-                  ? { opacity: 1 }
-                  : { opacity: 1, y: [0, -10 - index * 2, 0], rotate: [-2 + index * 2, 1, -2 + index * 2] }
-              }
-              transition={{
-                opacity: { delay: 1.25 + index * 0.16, duration: 0.55 },
-                y: { delay: 1.7 + index * 0.2, duration: 4.5 + index, repeat: Infinity, ease: "easeInOut" },
-                rotate: { delay: 1.7, duration: 5.5 + index, repeat: Infinity, ease: "easeInOut" },
-              }}
+              initial={reducedMotion ? false : { y: "112%" }}
+              animate={{ y: 0 }}
+              transition={{ delay: 0.28, duration: 0.88, ease: [0.22, 1, 0.36, 1] }}
             >
-              {moment.label}
+              She texted
             </motion.span>
-          ))}
-        </div>
+          </span>
+          <span className="love-line-mask love-line-pink">
+            <motion.em
+              initial={reducedMotion ? false : { y: "112%" }}
+              animate={{ y: 0 }}
+              transition={{ delay: 0.48, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            >
+              the wrong person—
+            </motion.em>
+          </span>
+          <span className="love-line-mask love-line-last">
+            <motion.strong
+              initial={reducedMotion ? false : { y: "112%" }}
+              animate={{ y: 0 }}
+              transition={{ delay: 0.68, duration: 0.92, ease: [0.22, 1, 0.36, 1] }}
+            >
+              and somehow found
+            </motion.strong>
+          </span>
+          <span className="love-line-mask love-line-blue">
+            <motion.strong
+              initial={reducedMotion ? false : { y: "112%" }}
+              animate={{ y: 0 }}
+              transition={{ delay: 0.84, duration: 0.94, ease: [0.22, 1, 0.36, 1] }}
+            >
+              the right one.
+            </motion.strong>
+          </span>
+        </h1>
 
-        <div className="hook-edition" aria-hidden="true">
-          <span>01</span>
-          <small>The quiet beginning</small>
-        </div>
+        <motion.div
+          className="love-reveal-details"
+          initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.7 }}
+        >
+          <p>
+            The message was an accident. Everything after it became a choice.
+            <span>{settings.tagline}</span>
+          </p>
+          <div className="love-reveal-actions">
+            <Link className="button primary" href="/journey">Enter our story <ArrowUpRight size={16} /></Link>
+            <Link className="button text" href="/gallery">See the evidence <ArrowUpRight size={16} /></Link>
+          </div>
+        </motion.div>
+      </div>
 
-        <Link className="hero-scroll-cue" href="#our-story-reveal">
-          <span>Follow the little moments</span>
+      <motion.div
+        className="love-reveal-footer"
+        initial={reducedMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.25, duration: 0.7 }}
+      >
+        <div className="love-reveal-date">
+          <CalendarHeart size={16} />
+          <span>Where It All Began</span>
+          <time dateTime={settings.relationship_start_date}>{startDate}</time>
+        </div>
+        <i className="love-reveal-divider" aria-hidden="true" />
+        <Link href="#the-story-begins" className="love-reveal-scroll">
+          <span>Scroll into the story</span>
           <motion.i
             aria-hidden="true"
-            animate={reducedMotion ? undefined : { y: [0, 6, 0] }}
+            animate={reducedMotion ? undefined : { y: [0, 5, 0] }}
             transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           >
-            <ArrowDown size={17} />
+            <ArrowDown size={16} />
           </motion.i>
         </Link>
-      </div>
-
-      <div className="hero-reveal" id="our-story-reveal">
-        <motion.div
-          className="reveal-portrait"
-          initial={reducedMotion ? false : { opacity: 0, rotate: -3, y: 45 }}
-          whileInView={{ opacity: 1, rotate: -1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="reveal-image">
-            <AppImage
-              src={settings.hero_image_url || "/placeholders/hero.webp"}
-              alt={`A memory from ${settings.person_one} and ${settings.person_two}'s story`}
-              fill
-              sizes="(max-width: 760px) 90vw, 42vw"
-            />
-          </div>
-          <span className="reveal-photo-note">This is where the little moments led.</span>
-          <div className="reveal-heart" aria-hidden="true"><Heart size={16} fill="currentColor" /></div>
-        </motion.div>
-
-        <motion.div
-          className="reveal-copy"
-          initial={reducedMotion ? false : { opacity: 0, x: 42 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <p className="reveal-prelude">And somehow, that quiet beginning became...</p>
-          <h2 className="reveal-names">
-            {settings.person_one}<em>&</em>{settings.person_two}
-          </h2>
-          <p className="hero-tagline">{settings.tagline}</p>
-          <div className="hero-actions">
-            <Link className="button primary" href="/journey">
-              Enter our story <ArrowDownRight size={17} />
-            </Link>
-            <Link className="button text" href="/gallery">
-              Peek at the photos <ArrowUpRight size={16} />
-            </Link>
-          </div>
-          <div className="hero-date">
-            <CalendarHeart size={17} />
-            <span>The first page</span>
-            <time>{settings.relationship_start_date}</time>
-          </div>
-        </motion.div>
-      </div>
+      </motion.div>
     </section>
   );
 }
