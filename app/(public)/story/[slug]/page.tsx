@@ -3,9 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppImage } from "@/components/shared/AppImage";
-import { getPublishedStories, getStoryBySlug } from "@/lib/queries/stories";
+import { getJourneyStories, getStoryBySlug } from "@/lib/queries/stories";
 
 type StoryPageProps = { params: Promise<{ slug: string }> };
+
+export async function generateStaticParams() {
+  const stories = await getJourneyStories();
+  return stories.map((story) => ({ slug: story.slug }));
+}
 
 export async function generateMetadata({ params }: StoryPageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -16,7 +21,7 @@ export async function generateMetadata({ params }: StoryPageProps): Promise<Meta
 
 export default async function StoryPage({ params }: StoryPageProps) {
   const { slug } = await params;
-  const [story, stories] = await Promise.all([getStoryBySlug(slug), getPublishedStories()]);
+  const [story, stories] = await Promise.all([getStoryBySlug(slug), getJourneyStories()]);
   if (!story) notFound();
   const currentIndex = stories.findIndex((item) => item.id === story.id);
   const previous = currentIndex > 0 ? stories[currentIndex - 1] : null;

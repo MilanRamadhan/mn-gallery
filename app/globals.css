@@ -336,7 +336,7 @@ select option { background: #10212c; color: var(--foreground); }
 /* Timeline */
 .journey-timeline { margin: 0 auto; max-width: 78rem; position: relative; }
 .journey-timeline::before { background: var(--border); bottom: 0; content: ""; left: 50%; position: absolute; top: 0; width: 1px; }
-.timeline-entry { align-items: start; display: grid; gap: 2rem; grid-template-columns: 1fr 4rem 1fr; margin-bottom: 7rem; }
+.timeline-entry { align-items: start; contain-intrinsic-size: auto 46rem; content-visibility: auto; display: grid; gap: 2rem; grid-template-columns: 1fr 4rem 1fr; margin-bottom: 7rem; }
 .timeline-entry:nth-child(even) .timeline-card { grid-column: 1; grid-row: 1; }
 .timeline-entry:nth-child(even) .timeline-date { grid-column: 3; text-align: left; }
 .timeline-date { grid-column: 1; text-align: right; }
@@ -368,6 +368,8 @@ select option { background: #10212c; color: var(--foreground); }
 .gallery-item:hover > span, .gallery-item:focus > span { opacity: 1; }
 .gallery-item small { font-size: .5rem; letter-spacing: .13em; text-transform: uppercase; }
 .gallery-item strong { font-family: var(--font-serif); font-size: 1.25rem; font-weight: 400; }
+.gallery-load-more { align-items: center; display: flex; flex-direction: column; gap: .8rem; padding-top: 3rem; }
+.gallery-load-more span { color: var(--muted); font-size: .52rem; letter-spacing: .1em; text-transform: uppercase; }
 .lightbox { align-items: center; background: rgba(6,17,24,.97); color: white; display: grid; grid-template-columns: 5rem 1fr 5rem; inset: 0; padding: 4rem 1rem 5.5rem; position: fixed; z-index: 100; }
 .lightbox-image { height: 100%; max-height: calc(100svh - 10rem); position: relative; }
 .lightbox-image img { object-fit: contain; }

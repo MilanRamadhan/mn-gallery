@@ -3,11 +3,11 @@
 import { ArrowUpRight, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { Category, Story } from "@/types/story";
+import type { Category, JourneyStory } from "@/types/story";
 import { EmptyState } from "@/components/public/EmptyState";
 import { AppImage } from "@/components/shared/AppImage";
 
-export function JourneyExplorer({ stories, categories }: { stories: Story[]; categories: Category[] }) {
+export function JourneyExplorer({ stories, categories }: { stories: JourneyStory[]; categories: Category[] }) {
   const years = Array.from(new Set(stories.map((story) => story.event_date.slice(0, 4)))).sort().reverse();
   const [year, setYear] = useState("all");
   const [category, setCategory] = useState("all");

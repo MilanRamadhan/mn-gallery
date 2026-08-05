@@ -5,15 +5,12 @@ import { RelationshipCounter } from "@/components/public/RelationshipCounter";
 import { SectionHeading } from "@/components/public/SectionHeading";
 import { StoryCard } from "@/components/public/StoryCard";
 import { AppImage } from "@/components/shared/AppImage";
-import { getFeaturedStories, getPublishedStories, getSiteSettings } from "@/lib/queries/stories";
+import { getPublishedStories, getSiteSettings } from "@/lib/queries/stories";
 
 export default async function HomePage() {
-  const [settings, stories, featured] = await Promise.all([
-    getSiteSettings(),
-    getPublishedStories(),
-    getFeaturedStories(),
-  ]);
+  const [settings, stories] = await Promise.all([getSiteSettings(), getPublishedStories()]);
   const now = new Date().toISOString();
+  const featured = stories.filter((story) => story.is_featured).slice(0, 4);
   const preview = stories.slice(0, 3);
   const gallery = stories.flatMap((story) => [story.cover_image_url, ...story.story_images.map((image) => image.image_url)]).slice(0, 7);
 

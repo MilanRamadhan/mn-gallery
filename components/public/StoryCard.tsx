@@ -1,12 +1,12 @@
 import { ArrowUpRight, MapPin } from "lucide-react";
 import Link from "next/link";
-import type { Story } from "@/types/story";
+import type { StoryPreview } from "@/types/story";
 import { AppImage } from "@/components/shared/AppImage";
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("en", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(value + "T00:00:00Z"));
 
-export function StoryCard({ story, priority = false, variant = "default" }: { story: Story; priority?: boolean; variant?: "default" | "compact" }) {
+export function StoryCard({ story, priority = false, variant = "default" }: { story: StoryPreview; priority?: boolean; variant?: "default" | "compact" }) {
   return (
     <article className={"story-card " + variant}>
       <Link href={"/story/" + story.slug} className="story-image">

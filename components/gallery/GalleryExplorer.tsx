@@ -2,14 +2,16 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import type { Category, Story } from "@/types/story";
+import type { Category, StoryPreview } from "@/types/story";
 import type { GalleryImage } from "./ImageLightbox";
 import { EmptyState } from "@/components/public/EmptyState";
 import { AppImage } from "@/components/shared/AppImage";
 
 const ImageLightbox = dynamic(() => import("./ImageLightbox"), { ssr: false });
 
-function flattenImages(stories: Story[]): GalleryImage[] {
+const PAGE_SIZE = 12;
+
+function flattenImages(stories: StoryPreview[]): GalleryImage[] {
   return stories.flatMap((story) => [
     {
       id: story.id + "-cover",
@@ -21,7 +23,7 @@ function flattenImages(stories: Story[]): GalleryImage[] {
       date: story.event_date,
       category: story.category?.name ?? "Memory",
     },
-    ...story.story_images
+    ...[...story.story_images]
       .sort((a, b) => a.display_order - b.display_order)
       .map((image) => ({
         id: image.id,
@@ -36,17 +38,25 @@ function flattenImages(stories: Story[]): GalleryImage[] {
   ]);
 }
 
-export function GalleryExplorer({ stories, categories }: { stories: Story[]; categories: Category[] }) {
+export function GalleryExplorer({ stories, categories }: { stories: StoryPreview[]; categories: Category[] }) {
   const allImages = useMemo(() => flattenImages(stories), [stories]);
-  const years = Array.from(new Set(allImages.map((image) => image.date.slice(0, 4)))).sort().reverse();
+  const years = useMemo(
+    () => Array.from(new Set(allImages.map((image) => image.date.slice(0, 4)))).sort().reverse(),
+    [allImages],
+  );
   const [year, setYear] = useState("all");
   const [category, setCategory] = useState("all");
   const [activeId, setActiveId] = useState<string | null>(null);
-  const images = allImages.filter(
-    (image) =>
-      (year === "all" || image.date.startsWith(year)) &&
-      (category === "all" || image.category === category),
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const images = useMemo(
+    () => allImages.filter(
+      (image) =>
+        (year === "all" || image.date.startsWith(year)) &&
+        (category === "all" || image.category === category),
+    ),
+    [allImages, category, year],
   );
+  const visibleImages = images.slice(0, visibleCount);
   const activeIndex = images.findIndex((image) => image.id === activeId);
   const active = activeIndex >= 0 ? images[activeIndex] : null;
   const previous = () => {
@@ -63,15 +73,15 @@ export function GalleryExplorer({ stories, categories }: { stories: Story[]; cat
   return (
     <>
       <div className="filter-bar gallery-filters">
-        <label>Year<select value={year} onChange={(event) => setYear(event.target.value)}><option value="all">All years</option>{years.map((item) => <option key={item}>{item}</option>)}</select></label>
-        <label>Category<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">All categories</option>{categories.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
+        <label>Year<select value={year} onChange={(event) => { setYear(event.target.value); setVisibleCount(PAGE_SIZE); }}><option value="all">All years</option>{years.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label>Category<select value={category} onChange={(event) => { setCategory(event.target.value); setVisibleCount(PAGE_SIZE); }}><option value="all">All categories</option>{categories.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select></label>
         <span>{images.length} photographs</span>
       </div>
       {images.length === 0 ? (
         <EmptyState title="The gallery is quiet" message="No photographs match these filters yet." />
       ) : (
         <div className="editorial-gallery">
-          {images.map((image, index) => (
+          {visibleImages.map((image, index) => (
             <button
               key={image.id}
               type="button"
@@ -85,7 +95,15 @@ export function GalleryExplorer({ stories, categories }: { stories: Story[]; cat
           ))}
         </div>
       )}
-      <ImageLightbox item={active} onClose={() => setActiveId(null)} onPrevious={previous} onNext={next} />
+      {visibleCount < images.length && (
+        <div className="gallery-load-more">
+          <button className="button outline" type="button" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
+            Load more photographs
+          </button>
+          <span>{visibleImages.length} of {images.length} shown</span>
+        </div>
+      )}
+      {active ? <ImageLightbox item={active} onClose={() => setActiveId(null)} onPrevious={previous} onNext={next} /> : null}
     </>
   );
 }

@@ -42,6 +42,33 @@ export type Story = {
   story_images: StoryImage[];
 };
 
+export type PublicStoryImage = Pick<
+  StoryImage,
+  "id" | "story_id" | "image_url" | "caption" | "alt_text" | "display_order"
+>;
+
+export type StoryPreview = Pick<
+  Story,
+  | "id"
+  | "title"
+  | "slug"
+  | "excerpt"
+  | "event_date"
+  | "location"
+  | "cover_image_url"
+  | "category_id"
+  | "status"
+  | "is_featured"
+  | "display_order"
+  | "created_at"
+  | "updated_at"
+> & {
+  category?: Category | null;
+  story_images: PublicStoryImage[];
+};
+
+export type JourneyStory = Omit<StoryPreview, "story_images">;
+
 export type SiteSettings = {
   id: string;
   site_title: string;

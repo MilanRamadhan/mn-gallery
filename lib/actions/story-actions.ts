@@ -1,6 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import {
+  PUBLIC_CATEGORIES_TAG,
+  PUBLIC_SETTINGS_TAG,
+  PUBLIC_STORIES_TAG,
+} from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
 import { categorySchema, settingsSchema, storyInputSchema } from "@/lib/validations/story";
@@ -193,6 +198,7 @@ export async function saveStoryAction(
   revalidatePath("/gallery");
   revalidatePath("/admin");
   revalidatePath("/admin/stories");
+  updateTag(PUBLIC_STORIES_TAG);
   return {
     success: true,
     message: orderRefreshed
@@ -234,6 +240,7 @@ export async function deleteStoryAction(id: string): Promise<ActionResult> {
   revalidatePath("/journey");
   revalidatePath("/gallery");
   revalidatePath("/admin/stories");
+  updateTag(PUBLIC_STORIES_TAG);
   return {
     success: true,
     message: storageResult.error
@@ -262,6 +269,7 @@ export async function toggleStoryStatusAction(
   revalidatePath("/");
   revalidatePath("/journey");
   revalidatePath("/admin/stories");
+  updateTag(PUBLIC_STORIES_TAG);
   return {
     success: true,
     message: status === "published" ? "Story published." : "Story moved to drafts.",
@@ -299,6 +307,8 @@ export async function saveCategoryAction(input: unknown): Promise<ActionResult> 
     };
   }
   revalidatePath("/admin/categories");
+  updateTag(PUBLIC_CATEGORIES_TAG);
+  updateTag(PUBLIC_STORIES_TAG);
   return { success: true, message: "Category saved." };
 }
 
@@ -320,6 +330,8 @@ export async function deleteCategoryAction(id: string): Promise<ActionResult> {
   const { error } = await auth.supabase.from("categories").delete().eq("id", id);
   if (error) return { success: false, message: "Category could not be deleted." };
   revalidatePath("/admin/categories");
+  updateTag(PUBLIC_CATEGORIES_TAG);
+  updateTag(PUBLIC_STORIES_TAG);
   return { success: true, message: "Category deleted." };
 }
 
@@ -362,5 +374,6 @@ export async function saveSettingsAction(input: unknown): Promise<ActionResult> 
   revalidatePath("/");
   revalidatePath("/about");
   revalidatePath("/admin/settings");
+  updateTag(PUBLIC_SETTINGS_TAG);
   return { success: true, message: "Site settings saved." };
 }

@@ -2,7 +2,7 @@ import { CalendarHeart, Images, MapPinned, NotebookText } from "lucide-react";
 import type { Metadata } from "next";
 import { RelationshipCounter } from "@/components/public/RelationshipCounter";
 import { AppImage } from "@/components/shared/AppImage";
-import { getPublishedStories, getSiteSettings } from "@/lib/queries/stories";
+import { getPublicStoryStats, getSiteSettings } from "@/lib/queries/stories";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -10,9 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const [settings, stories] = await Promise.all([getSiteSettings(), getPublishedStories()]);
-  const memories = stories.reduce((total, story) => total + story.story_images.length + 1, 0);
-  const places = new Set(stories.map((story) => story.location).filter(Boolean)).size;
+  const [settings, stats] = await Promise.all([getSiteSettings(), getPublicStoryStats()]);
   return (
     <main className="about-page">
       <header className="about-hero">
@@ -22,9 +20,9 @@ export default async function AboutPage() {
       </header>
       <section className="about-stats">
         <div><CalendarHeart /><strong><RelationshipCounter startDate={settings.relationship_start_date} now={new Date().toISOString()} compact /></strong><span>Since {settings.relationship_start_date}</span></div>
-        <div><Images /><strong>{memories}</strong><span>Memories saved</span></div>
-        <div><MapPinned /><strong>{places}</strong><span>Places remembered</span></div>
-        <div><NotebookText /><strong>{stories.length}</strong><span>Stories written</span></div>
+        <div><Images /><strong>{stats.memories}</strong><span>Memories saved</span></div>
+        <div><MapPinned /><strong>{stats.places}</strong><span>Places remembered</span></div>
+        <div><NotebookText /><strong>{stats.stories}</strong><span>Stories written</span></div>
       </section>
       <section className="about-letter">
         <div><p className="eyebrow">A note for future us</p><h2>May we keep noticing the little things.</h2></div>

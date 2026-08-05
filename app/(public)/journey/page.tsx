@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JourneyExplorer } from "@/components/timeline/JourneyExplorer";
-import { getCategories, getPublishedStories } from "@/lib/queries/stories";
+import { getCategories, getJourneyStories } from "@/lib/queries/stories";
 
 export const metadata: Metadata = {
   title: "Our Journey",
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function JourneyPage() {
-  const [stories, categories] = await Promise.all([getPublishedStories(), getCategories()]);
+  const [stories, categories] = await Promise.all([getJourneyStories(), getCategories()]);
   return (
     <main className="inner-page journey-page">
       <header className="page-hero split">
