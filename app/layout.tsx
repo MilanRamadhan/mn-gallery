@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
-import { Toaster } from "sonner";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
+
+const supabaseOrigin = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+      : null;
+  } catch {
+    return null;
+  }
+})();
 
 const heading = Cormorant_Garamond({
   subsets: ["latin"],
@@ -50,9 +59,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={heading.variable + " " + body.variable}>
+      {supabaseOrigin ? (
+        <head>
+          <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
+          <link rel="dns-prefetch" href={supabaseOrigin} />
+        </head>
+      ) : null}
       <body>
         {children}
-        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );

@@ -1,10 +1,9 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const links = [
   { href: "/", label: "Home" },
@@ -15,17 +14,41 @@ const links = [
 
 export function PublicNavbar({ coupleName }: { coupleName: string }) {
   const pathname = usePathname();
-  const reducedMotion = useReducedMotion();
+  const router = useRouter();
+  const scrollFrameRef = useRef<number | null>(null);
+  const scrolledRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const isQuietOpening = pathname === "/" && !scrolled;
 
   useEffect(() => {
-    const update = () => setScrolled(window.scrollY > 24);
+    const update = () => {
+      if (scrollFrameRef.current !== null) return;
+      scrollFrameRef.current = requestAnimationFrame(() => {
+        const nextScrolled = window.scrollY > 24;
+        if (nextScrolled !== scrolledRef.current) {
+          scrolledRef.current = nextScrolled;
+          setScrolled(nextScrolled);
+        }
+        scrollFrameRef.current = null;
+      });
+    };
     update();
     window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
+    };
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      links.forEach((link) => {
+        if (link.href !== pathname) router.prefetch(link.href);
+      });
+    }, 2_000);
+    return () => window.clearTimeout(timer);
+  }, [pathname, router]);
 
   return (
     <>
@@ -51,24 +74,17 @@ export function PublicNavbar({ coupleName }: { coupleName: string }) {
           {open ? <X /> : <Menu />}
         </button>
       </header>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="mobile-nav"
-            initial={reducedMotion ? false : { opacity: 0, y: -18 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -18 }}
-          >
-            <nav aria-label="Mobile navigation">
-              {links.map((link, index) => (
-                <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
-                  <span>0{index + 1}</span>{link.label}
-                </Link>
-              ))}
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {open ? (
+        <div className="mobile-nav mobile-nav-enter">
+          <nav aria-label="Mobile navigation">
+            {links.map((link, index) => (
+              <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
+                <span>0{index + 1}</span>{link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      ) : null}
     </>
   );
 }

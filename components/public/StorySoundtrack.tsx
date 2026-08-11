@@ -4,6 +4,7 @@ import { Music2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type SpotifyController = {
+  addListener?: (event: "playback_started" | "ready", callback: () => void) => void;
   destroy: () => void;
   play: () => void;
 };
@@ -53,6 +54,16 @@ export function StorySoundtrack({ trackId }: { trackId: string }) {
   useEffect(() => {
     let cancelled = false;
     let controller: SpotifyController | null = null;
+    const requestPlayback = () => {
+      try {
+        controller?.play();
+      } catch {
+        // A later visitor interaction retries playback when autoplay is blocked.
+      }
+    };
+
+    window.addEventListener("pointerdown", requestPlayback, { capture: true });
+    window.addEventListener("keydown", requestPlayback, { capture: true });
 
     void loadSpotifyIframeApi().then((api) => {
       if (cancelled || !hostRef.current) return;
@@ -66,17 +77,16 @@ export function StorySoundtrack({ trackId }: { trackId: string }) {
             return;
           }
           controller = createdController;
-          try {
-            createdController.play();
-          } catch {
-            // Browsers may require the visitor's first interaction before audible playback.
-          }
+          createdController.addListener?.("ready", requestPlayback);
+          requestPlayback();
         },
       );
     });
 
     return () => {
       cancelled = true;
+      window.removeEventListener("pointerdown", requestPlayback, { capture: true });
+      window.removeEventListener("keydown", requestPlayback, { capture: true });
       controller?.destroy();
     };
   }, [trackId]);
@@ -94,7 +104,7 @@ export function StorySoundtrack({ trackId }: { trackId: string }) {
           </button>
         </div>
         <div className="spotify-frame-host" ref={hostRef} />
-        <p className="soundtrack-note">Playback starts automatically when the browser allows it.</p>
+        <p className="soundtrack-note">Starts automatically. If the browser blocks sound, your first touch anywhere continues it.</p>
       </div>
 
       <button

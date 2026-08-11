@@ -44,7 +44,7 @@ export const storyFormSchema = storyInputSchema.pick({
 }).extend({
   spotifyUrl: z.string().trim().max(300).refine(
     (value) => !value || Boolean(getSpotifyTrackId(value)),
-    "Paste a valid Spotify track link.",
+    "Choose a Spotify track or enter a valid Spotify track link.",
   ),
 });
 

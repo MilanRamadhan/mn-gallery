@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, UploadCloud } from "lucide-react";
+import { Crop, ImagePlus, UploadCloud } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppImage } from "@/components/shared/AppImage";
@@ -35,10 +35,10 @@ export function SettingsImagePicker({
   onChange: (file: File, preview: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [editor, setEditor] = useState<{ file: File; source: string } | null>(null);
+  const [editor, setEditor] = useState<{ fileName: string; source: string; ownsSource: boolean } | null>(null);
 
   useEffect(() => () => {
-    if (editor) URL.revokeObjectURL(editor.source);
+    if (editor?.ownsSource) URL.revokeObjectURL(editor.source);
   }, [editor]);
 
   return (
@@ -49,9 +49,11 @@ export function SettingsImagePicker({
       </div>
       <button
         type="button"
-        aria-label={`${preview ? "Replace" : "Choose"} ${title.toLowerCase()}`}
+        aria-label={`${preview ? "Edit crop for" : "Choose"} ${title.toLowerCase()}`}
         disabled={disabled}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => preview
+          ? setEditor({ fileName: selectedFileName ?? `${title.toLowerCase().replace(/\s+/g, "-")}.webp`, source: preview, ownsSource: false })
+          : inputRef.current?.click()}
       >
         {preview ? (
           <AppImage
@@ -64,8 +66,9 @@ export function SettingsImagePicker({
         ) : (
           <span className="settings-image-empty"><ImagePlus /><em>Choose a photograph</em></span>
         )}
-        <span className="settings-image-action"><UploadCloud size={17} />{preview ? "Replace photo" : "Choose photo"}</span>
+        <span className="settings-image-action">{preview ? <Crop size={17} /> : <UploadCloud size={17} />}{preview ? "Edit crop" : "Choose photo"}</span>
       </button>
+      {preview && <button className="button outline settings-image-replace" type="button" disabled={disabled} onClick={() => inputRef.current?.click()}><UploadCloud size={15} />Replace photo</button>}
       <input
         ref={inputRef}
         type="file"
@@ -73,7 +76,7 @@ export function SettingsImagePicker({
         hidden
         onChange={(event) => {
           const file = event.target.files?.[0];
-          if (file && validateImage(file)) setEditor({ file, source: URL.createObjectURL(file) });
+          if (file && validateImage(file)) setEditor({ fileName: file.name, source: URL.createObjectURL(file), ownsSource: true });
           event.currentTarget.value = "";
         }}
       />
@@ -81,7 +84,7 @@ export function SettingsImagePicker({
       {editor && (
         <ImageCropDialog
           source={editor.source}
-          fileName={editor.file.name}
+          fileName={editor.fileName}
           title={title}
           onCancel={() => setEditor(null)}
           onComplete={(croppedFile) => {

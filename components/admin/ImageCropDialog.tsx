@@ -5,8 +5,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AppImage } from "@/components/shared/AppImage";
 
 const DEFAULT_CROP_ASPECT = 4 / 5;
-const DEFAULT_OUTPUT_WIDTH = 1600;
-const DEFAULT_OUTPUT_HEIGHT = 2000;
+const DEFAULT_OUTPUT_WIDTH = 1440;
+const DEFAULT_OUTPUT_HEIGHT = 1800;
 
 type Size = { width: number; height: number };
 type Position = { x: number; y: number };
@@ -66,7 +66,7 @@ async function createCroppedFile(
     outputHeight,
   );
   const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((result) => result ? resolve(result) : reject(new Error("The cropped photo could not be created.")), "image/webp", 0.9);
+    canvas.toBlob((result) => result ? resolve(result) : reject(new Error("The cropped photo could not be created.")), "image/webp", 0.84);
   });
   const stem = originalName.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]+/g, "-") || "photo";
   return new File([blob], `${stem}-cropped.webp`, { type: "image/webp", lastModified: Date.now() });
@@ -109,6 +109,7 @@ export function ImageCropDialog({
 
   useEffect(() => {
     const image = new window.Image();
+    image.crossOrigin = "anonymous";
     image.onload = () => {
       sourceImageRef.current = image;
       setImageSize({ width: image.naturalWidth, height: image.naturalHeight });
