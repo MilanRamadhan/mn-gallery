@@ -1,6 +1,7 @@
 "use client";
 
 import { Music2, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const tracks = [
@@ -17,6 +18,7 @@ const tracks = [
 ] as const;
 
 export function MusicPlayer() {
+  const pathname = usePathname();
   const [activeTrack, setActiveTrack] = useState(0);
   const [hasOpened, setHasOpened] = useState(false);
   const [open, setOpen] = useState(false);
@@ -25,6 +27,8 @@ export function MusicPlayer() {
     setHasOpened(true);
     setOpen((value) => !value);
   };
+
+  if (pathname.startsWith("/story/")) return null;
 
   return (
     <aside className={`music-player${open ? " open" : ""}`} aria-label="MilaNora soundtrack">

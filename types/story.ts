@@ -30,6 +30,7 @@ export type Story = {
   event_date: string;
   location?: string | null;
   quote?: string | null;
+  spotify_track_id?: string | null;
   cover_image_url: string;
   cover_storage_path?: string | null;
   category_id?: string | null;
@@ -100,6 +101,7 @@ export type StoryInput = {
   eventDate: string;
   location?: string;
   quote?: string;
+  spotifyTrackId?: string;
   coverImageUrl: string;
   coverStoragePath?: string;
   categoryId?: string;

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppImage } from "@/components/shared/AppImage";
+import { StorySoundtrack } from "@/components/public/StorySoundtrack";
 import { getJourneyStories, getStoryBySlug } from "@/lib/queries/stories";
 
 type StoryPageProps = { params: Promise<{ slug: string }> };
@@ -30,6 +31,7 @@ export default async function StoryPage({ params }: StoryPageProps) {
 
   return (
     <main className="story-page">
+      {story.spotify_track_id && <StorySoundtrack trackId={story.spotify_track_id} />}
       <header className="story-header">
         <nav aria-label="Breadcrumb"><Link href="/">Home</Link><span>/</span><Link href="/journey">Journey</Link><span>/</span><span>{story.title}</span></nav>
         <p className="eyebrow">{story.category?.name ?? "Memory"}</p>

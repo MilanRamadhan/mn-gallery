@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getSpotifyTrackId } from "@/lib/spotify";
 
 export const storyInputSchema = z.object({
   id: z.string().uuid().optional(),
@@ -10,6 +11,7 @@ export const storyInputSchema = z.object({
   eventDate: z.string().date("Choose a valid event date."),
   location: z.string().trim().max(120).optional(),
   quote: z.string().trim().max(300).optional(),
+  spotifyTrackId: z.string().regex(/^[A-Za-z0-9]{22}$/).optional().or(z.literal("")),
   coverImageUrl: z.string().min(1, "A cover image is required."),
   coverStoragePath: z.string().optional(),
   categoryId: z.string().uuid().optional().or(z.literal("")),
@@ -39,6 +41,11 @@ export const storyFormSchema = storyInputSchema.pick({
   categoryId: true,
   status: true,
   isFeatured: true,
+}).extend({
+  spotifyUrl: z.string().trim().max(300).refine(
+    (value) => !value || Boolean(getSpotifyTrackId(value)),
+    "Paste a valid Spotify track link.",
+  ),
 });
 
 export type StoryFormValues = z.infer<typeof storyFormSchema>;

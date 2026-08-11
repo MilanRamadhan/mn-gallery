@@ -1,11 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, LoaderCircle, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, LoaderCircle, Music2, Save, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import type { Category, Story, StoryInput } from "@/types/story";
 import { createClientId } from "@/lib/client-id";
@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
 import { saveStoryAction } from "@/lib/actions/story-actions";
 import { slugify, storyFormSchema, type StoryFormValues } from "@/lib/validations/story";
+import { getSpotifyEmbedUrl, getSpotifyTrackId, getSpotifyTrackUrl } from "@/lib/spotify";
 import { ImageUploader, type PendingImage } from "./ImageUploader";
 
 async function upload(file: File, folder: "covers" | "stories") {
@@ -55,6 +56,7 @@ export function StoryForm({
     register,
     handleSubmit,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<StoryFormValues>({
     resolver: zodResolver(storyFormSchema),
@@ -67,12 +69,15 @@ export function StoryForm({
       excerpt: initialStory?.excerpt ?? "",
       content: initialStory?.content ?? "",
       quote: initialStory?.quote ?? "",
+      spotifyUrl: initialStory?.spotify_track_id ? getSpotifyTrackUrl(initialStory.spotify_track_id) : "",
       categoryId: initialStory?.category_id ?? "",
       status: initialStory?.status ?? "draft",
       isFeatured: initialStory?.is_featured ?? false,
     },
   });
   const titleField = register("title");
+  const spotifyUrl = useWatch({ control, name: "spotifyUrl" }) ?? "";
+  const spotifyTrackId = getSpotifyTrackId(spotifyUrl);
 
   const submit = async (values: StoryFormValues) => {
     if (!coverPreview && !coverFile) {
@@ -104,9 +109,11 @@ export function StoryForm({
         });
         setProgress(30 + Math.round(((index + 1) / Math.max(1, images.length)) * 55));
       }
+      const { spotifyUrl: submittedSpotifyUrl, ...storyValues } = values;
       const input: StoryInput = {
         id: initialStory?.id,
-        ...values,
+        ...storyValues,
+        spotifyTrackId: getSpotifyTrackId(submittedSpotifyUrl) ?? "",
         coverImageUrl: cover.imageUrl,
         coverStoragePath: cover.storagePath,
         additionalImages: uploadedImages,
@@ -163,8 +170,21 @@ export function StoryForm({
         onImagesChange={setImages}
       />
 
+      <section className="form-section soundtrack-section">
+        <div className="form-section-heading"><span>04</span><div><h2>Story soundtrack</h2><p>Paste one Spotify track link. Visitors can listen without leaving this story.</p></div></div>
+        <div className="form-grid">
+          <label className="wide">Spotify song link <em>optional</em><input {...register("spotifyUrl")} inputMode="url" placeholder="https://open.spotify.com/track/..." />{errors.spotifyUrl ? <small role="alert">{errors.spotifyUrl.message}</small> : <small className="field-hint">In Spotify, choose Share → Copy song link, then paste it here.</small>}</label>
+          {spotifyTrackId && (
+            <div className="soundtrack-preview wide">
+              <div><Music2 size={17} /><span><strong>Soundtrack preview</strong><small>This is what visitors will hear while reading.</small></span></div>
+              <iframe src={getSpotifyEmbedUrl(spotifyTrackId)} title="Spotify soundtrack preview" width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" />
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="form-section publishing-section">
-        <div className="form-section-heading"><span>04</span><div><h2>Publishing</h2><p>Drafts stay private. Published stories appear on the public website.</p></div></div>
+        <div className="form-section-heading"><span>05</span><div><h2>Publishing</h2><p>Drafts stay private. Published stories appear on the public website.</p></div></div>
         <div className="publish-options">
           <label>Status<select {...register("status")}><option value="draft">Draft</option><option value="published">Published</option></select></label>
           <label className="check-row"><input type="checkbox" {...register("isFeatured")} /><span><Sparkles size={16} /><strong>Feature this story</strong><small>Show it prominently on the homepage.</small></span></label>
