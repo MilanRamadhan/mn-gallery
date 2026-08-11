@@ -8,24 +8,13 @@ import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import type { Category, Story, StoryInput } from "@/types/story";
-import { createClientId } from "@/lib/client-id";
 import { createClient } from "@/lib/supabase/client";
 import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
+import { uploadMediaResumable } from "@/lib/supabase/resumable-upload";
 import { saveStoryAction } from "@/lib/actions/story-actions";
 import { slugify, storyFormSchema, type StoryFormValues } from "@/lib/validations/story";
 import { getSpotifyEmbedUrl, getSpotifyTrackId, getSpotifyTrackUrl } from "@/lib/spotify";
 import { ImageUploader, type PendingImage } from "./ImageUploader";
-
-async function upload(file: File, folder: "covers" | "stories") {
-  const supabase = createClient();
-  if (!supabase) throw new Error("Supabase is not configured.");
-  const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
-  const path = folder + "/" + createClientId() + "-" + safeName;
-  const { error } = await supabase.storage.from(SUPABASE_MEDIA_BUCKET).upload(path, file, { cacheControl: "31536000", upsert: false });
-  if (error) throw error;
-  const { data } = supabase.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(path);
-  return { imageUrl: data.publicUrl, storagePath: path };
-}
 
 export function StoryForm({
   categories,
@@ -52,6 +41,7 @@ export function StoryForm({
     })) ?? [],
   );
   const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("Preparing photographs");
   const {
     register,
     handleSubmit,
@@ -84,15 +74,37 @@ export function StoryForm({
       toast.error("Choose a cover image before saving.");
       return;
     }
+    const uploadedPaths: string[] = [];
+    const newFiles = [coverFile, ...images.map((image) => image.file ?? null)].filter(
+      (file): file is File => Boolean(file),
+    );
+    const totalUploadBytes = newFiles.reduce((total, file) => total + file.size, 0);
+    let completedBytes = 0;
+    const upload = async (file: File, folder: "covers" | "stories") => {
+      setProgressLabel(`Uploading ${file.name}`);
+      const uploaded = await uploadMediaResumable({
+        file,
+        folder,
+        onProgress: ({ bytesUploaded }) => {
+          const percentage = totalUploadBytes > 0
+            ? Math.round(((completedBytes + bytesUploaded) / totalUploadBytes) * 95)
+            : 95;
+          setProgress((current) => Math.max(current, Math.min(95, percentage)));
+        },
+      });
+      completedBytes += file.size;
+      uploadedPaths.push(uploaded.storagePath);
+      return uploaded;
+    };
+
     try {
-      setProgress(5);
+      setProgress(newFiles.length ? 1 : 95);
       let cover = {
         imageUrl: initialStory?.cover_image_url ?? "",
         storagePath: initialStory?.cover_storage_path ?? "",
       };
       if (coverFile) {
         cover = await upload(coverFile, "covers");
-        setProgress(30);
       }
       const uploadedImages = [];
       for (let index = 0; index < images.length; index += 1) {
@@ -107,8 +119,9 @@ export function StoryForm({
           altText: image.altText,
           displayOrder: index,
         });
-        setProgress(30 + Math.round(((index + 1) / Math.max(1, images.length)) * 55));
       }
+      setProgressLabel("Saving story details");
+      setProgress(96);
       const { spotifyUrl: submittedSpotifyUrl, ...storyValues } = values;
       const input: StoryInput = {
         id: initialStory?.id,
@@ -120,6 +133,10 @@ export function StoryForm({
       };
       const result = await saveStoryAction(input);
       if (!result.success) {
+        const supabase = createClient();
+        if (uploadedPaths.length && supabase) {
+          await supabase.storage.from(SUPABASE_MEDIA_BUCKET).remove(uploadedPaths);
+        }
         toast.error(result.message);
         setProgress(0);
         return;
@@ -129,6 +146,10 @@ export function StoryForm({
       router.push("/admin/stories");
       router.refresh();
     } catch (error) {
+      const supabase = createClient();
+      if (uploadedPaths.length && supabase) {
+        await supabase.storage.from(SUPABASE_MEDIA_BUCKET).remove(uploadedPaths);
+      }
       const detail = error instanceof Error ? error.message : "Unknown upload error";
       toast.error("Upload failed: " + detail);
       setProgress(0);
@@ -190,7 +211,7 @@ export function StoryForm({
           <label className="check-row"><input type="checkbox" {...register("isFeatured")} /><span><Sparkles size={16} /><strong>Feature this story</strong><small>Show it prominently on the homepage.</small></span></label>
         </div>
       </section>
-      {progress > 0 && progress < 100 && <div className="upload-progress" role="status"><span style={{ width: progress + "%" }} /><p>Uploading photographs · {progress}%</p></div>}
+      {progress > 0 && progress < 100 && <div className="upload-progress" role="status"><span style={{ width: progress + "%" }} /><p>{progressLabel} · {progress}%</p></div>}
       <div className="form-actions"><Link className="button outline" href="/admin/stories">Cancel</Link><button className="button primary" type="submit" disabled={isSubmitting}>{isSubmitting ? <LoaderCircle className="spin" /> : <Save size={16} />}{isSubmitting ? "Saving story…" : "Save story"}</button></div>
     </form>
   );

@@ -4,33 +4,18 @@ import { LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { createClientId } from "@/lib/client-id";
 import { saveSettingsAction } from "@/lib/actions/story-actions";
 import { createClient } from "@/lib/supabase/client";
 import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
+import { uploadMediaResumable } from "@/lib/supabase/resumable-upload";
 import type { SiteSettings } from "@/types/story";
 import { SettingsImagePicker } from "./SettingsImagePicker";
-
-type BrowserSupabaseClient = NonNullable<ReturnType<typeof createClient>>;
-
-async function uploadSettingsImage(
-  supabase: BrowserSupabaseClient,
-  file: File,
-  kind: "hero" | "couple",
-) {
-  const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-") || "photo";
-  const path = `settings/${kind}/${createClientId()}-${safeName}`;
-  const { error } = await supabase.storage
-    .from(SUPABASE_MEDIA_BUCKET)
-    .upload(path, file, { cacheControl: "31536000", upsert: false });
-  if (error) throw error;
-  const { data } = supabase.storage.from(SUPABASE_MEDIA_BUCKET).getPublicUrl(path);
-  return { imageUrl: data.publicUrl, storagePath: path };
-}
 
 export function SettingsForm({ settings }: { settings: SiteSettings }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("Preparing photographs");
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [coupleFile, setCoupleFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState(settings.hero_image_url || "/placeholders/hero.webp");
@@ -67,6 +52,9 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
     event.preventDefault();
     setPending(true);
     const uploadedPaths: string[] = [];
+    const newFiles = [heroFile, coupleFile].filter((file): file is File => Boolean(file));
+    const totalUploadBytes = newFiles.reduce((total, file) => total + file.size, 0);
+    let completedBytes = 0;
     const supabase = heroFile || coupleFile ? createClient() : null;
 
     if ((heroFile || coupleFile) && !supabase) {
@@ -77,17 +65,35 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
 
     try {
       let nextValues = { ...values };
+      setUploadProgress(newFiles.length ? 1 : 95);
+      const uploadSettingsImage = async (file: File, kind: "hero" | "couple") => {
+        setProgressLabel(`Uploading ${kind} photograph`);
+        const uploaded = await uploadMediaResumable({
+          file,
+          folder: `settings/${kind}`,
+          onProgress: ({ bytesUploaded }) => {
+            const percentage = totalUploadBytes > 0
+              ? Math.round(((completedBytes + bytesUploaded) / totalUploadBytes) * 95)
+              : 95;
+            setUploadProgress((current) => Math.max(current, Math.min(95, percentage)));
+          },
+        });
+        completedBytes += file.size;
+        return uploaded;
+      };
       if (heroFile && supabase) {
-        const uploaded = await uploadSettingsImage(supabase, heroFile, "hero");
+        const uploaded = await uploadSettingsImage(heroFile, "hero");
         uploadedPaths.push(uploaded.storagePath);
         nextValues = { ...nextValues, heroImageUrl: uploaded.imageUrl, heroStoragePath: uploaded.storagePath };
       }
       if (coupleFile && supabase) {
-        const uploaded = await uploadSettingsImage(supabase, coupleFile, "couple");
+        const uploaded = await uploadSettingsImage(coupleFile, "couple");
         uploadedPaths.push(uploaded.storagePath);
         nextValues = { ...nextValues, coupleImageUrl: uploaded.imageUrl, coupleStoragePath: uploaded.storagePath };
       }
 
+      setProgressLabel("Saving site settings");
+      setUploadProgress(96);
       const result = await saveSettingsAction({
         id: settings.id === "00000000-0000-0000-0000-000000000000" ? undefined : settings.id,
         ...nextValues,
@@ -123,6 +129,7 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
       toast.error("Upload failed: " + detail);
     } finally {
       setPending(false);
+      setUploadProgress(0);
     }
   };
 
@@ -177,6 +184,7 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
           <label className="wide">SEO description<textarea rows={3} value={values.seoDescription} onChange={(event) => update("seoDescription", event.target.value)} /></label>
         </div>
       </section>
+      {uploadProgress > 0 && uploadProgress < 100 && <div className="upload-progress" role="status"><span style={{ width: uploadProgress + "%" }} /><p>{progressLabel} · {uploadProgress}%</p></div>}
       <div className="settings-save"><button className="button primary" type="submit" disabled={pending}>{pending ? <LoaderCircle className="spin" /> : <Save size={16} />}{pending ? "Uploading & saving..." : "Save settings"}</button></div>
     </form>
   );
