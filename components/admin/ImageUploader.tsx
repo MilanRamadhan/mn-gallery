@@ -57,6 +57,8 @@ export function ImageUploader({
 }) {
   const coverInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
+  const replaceGalleryInput = useRef<HTMLInputElement>(null);
+  const replaceImageKeyRef = useRef<string | null>(null);
   const cropQueueRef = useRef<QueuedCrop[]>([]);
   const [cropQueue, setCropQueue] = useState<QueuedCrop[]>([]);
 
@@ -67,7 +69,7 @@ export function ImageUploader({
     cropQueueRef.current.forEach((item) => URL.revokeObjectURL(item.source));
   }, []);
 
-  const queueCrop = (file: File, target: QueuedCrop["target"]) => {
+  const queueCrop = (file: File, target: QueuedCrop["target"], replaceImageKey?: string) => {
     const isCover = target === "cover";
     setCropQueue((current) => [
       ...current,
@@ -76,6 +78,7 @@ export function ImageUploader({
         fileName: file.name,
         source: URL.createObjectURL(file),
         ownsSource: true,
+        replaceImageKey,
         target,
         title: isCover ? "Story cover" : "Gallery photograph",
         aspectRatio: isCover ? 16 / 9 : 4 / 5,
@@ -111,7 +114,7 @@ export function ImageUploader({
 
   const addImages = (files: FileList | null) => {
     if (!files) return;
-    const queuedGallery = cropQueue.filter((item) => item.target === "gallery").length;
+    const queuedGallery = cropQueue.filter((item) => item.target === "gallery" && !item.replaceImageKey).length;
     const incoming = Array.from(files).filter(validFile).slice(0, Math.max(0, 20 - images.length - queuedGallery));
     incoming.forEach((file) => queueCrop(file, "gallery"));
   };
@@ -187,6 +190,19 @@ export function ImageUploader({
         <div><h3>Additional photographs</h3><p>Each selected photo opens in the crop editor before captions are added.</p></div>
         <button className="button outline" type="button" onClick={() => galleryInput.current?.click()}><ImagePlus size={16} />Add photos</button>
         <input ref={galleryInput} type="file" multiple accept={uploadConfig.acceptedTypes.join(",")} hidden onChange={(event) => { addImages(event.target.files); event.currentTarget.value = ""; }} />
+        <input
+          ref={replaceGalleryInput}
+          type="file"
+          accept={uploadConfig.acceptedTypes.join(",")}
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            const replaceImageKey = replaceImageKeyRef.current;
+            if (file && replaceImageKey && validFile(file)) queueCrop(file, "gallery", replaceImageKey);
+            replaceImageKeyRef.current = null;
+            event.currentTarget.value = "";
+          }}
+        />
       </div>
       {images.length > 0 && (
         <div className="sortable-images">
@@ -198,6 +214,15 @@ export function ImageUploader({
                 <label>Alt text<input value={image.altText} maxLength={240} onChange={(event) => onImagesChange(images.map((item) => item.key === image.key ? { ...item, altText: event.target.value } : item))} placeholder="Describe the photograph" /></label>
               </div>
               <div className="sort-actions">
+                <button
+                  type="button"
+                  aria-label="Replace image"
+                  title="Replace photo"
+                  onClick={() => {
+                    replaceImageKeyRef.current = image.key;
+                    replaceGalleryInput.current?.click();
+                  }}
+                ><UploadCloud size={15} /></button>
                 <button type="button" aria-label="Edit image crop" onClick={() => queueExistingCrop(image.preview, "gallery", image.file?.name ?? "gallery-photo.webp", image.key)}><Crop size={15} /></button>
                 <button type="button" aria-label="Move image up" disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp size={15} /></button>
                 <button type="button" aria-label="Move image down" disabled={index === images.length - 1} onClick={() => move(index, 1)}><ArrowDown size={15} /></button>
