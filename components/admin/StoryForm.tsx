@@ -13,9 +13,9 @@ import { SUPABASE_MEDIA_BUCKET } from "@/lib/supabase/config";
 import { uploadMediaResumable } from "@/lib/supabase/resumable-upload";
 import { saveStoryAction } from "@/lib/actions/story-actions";
 import { slugify, storyFormSchema, type StoryFormValues } from "@/lib/validations/story";
-import { getSpotifyTrackId, getSpotifyTrackUrl } from "@/lib/spotify";
+import { getYouTubeVideoId, getYouTubeVideoUrl } from "@/lib/youtube";
 import { ImageUploader, type PendingImage } from "./ImageUploader";
-import { SpotifyTrackPicker } from "./SpotifyTrackPicker";
+import { YouTubeTrackPicker } from "./YouTubeTrackPicker";
 
 export function StoryForm({
   categories,
@@ -60,14 +60,14 @@ export function StoryForm({
       excerpt: initialStory?.excerpt ?? "",
       content: initialStory?.content ?? "",
       quote: initialStory?.quote ?? "",
-      spotifyUrl: initialStory?.spotify_track_id ? getSpotifyTrackUrl(initialStory.spotify_track_id) : "",
+      youtubeUrl: initialStory?.youtube_video_id ? getYouTubeVideoUrl(initialStory.youtube_video_id) : "",
       categoryId: initialStory?.category_id ?? "",
       status: initialStory?.status ?? "draft",
       isFeatured: initialStory?.is_featured ?? false,
     },
   });
   const titleField = register("title");
-  const spotifyUrl = useWatch({ control, name: "spotifyUrl" }) ?? "";
+  const youtubeUrl = useWatch({ control, name: "youtubeUrl" }) ?? "";
 
   const submit = async (values: StoryFormValues) => {
     if (!coverPreview && !coverFile) {
@@ -122,11 +122,11 @@ export function StoryForm({
       }
       setProgressLabel("Saving story details");
       setProgress(96);
-      const { spotifyUrl: submittedSpotifyUrl, ...storyValues } = values;
+      const { youtubeUrl: submittedYouTubeUrl, ...storyValues } = values;
       const input: StoryInput = {
         id: initialStory?.id,
         ...storyValues,
-        spotifyTrackId: getSpotifyTrackId(submittedSpotifyUrl) ?? "",
+        youtubeVideoId: getYouTubeVideoId(submittedYouTubeUrl) ?? "",
         coverImageUrl: cover.imageUrl,
         coverStoragePath: cover.storagePath,
         additionalImages: uploadedImages,
@@ -192,13 +192,13 @@ export function StoryForm({
       />
 
       <section className="form-section soundtrack-section">
-        <div className="form-section-heading"><span>04</span><div><h2>Story soundtrack</h2><p>Search Spotify here, choose one track, and it will follow visitors into this chapter.</p></div></div>
+        <div className="form-section-heading"><span>04</span><div><h2>Story soundtrack</h2><p>Search YouTube here, choose one song, and it will follow visitors into this chapter.</p></div></div>
         <div className="form-grid">
-          <input type="hidden" {...register("spotifyUrl")} />
-          <SpotifyTrackPicker
-            value={spotifyUrl}
-            error={errors.spotifyUrl?.message}
-            onChange={(value) => setValue("spotifyUrl", value, { shouldDirty: true, shouldValidate: true })}
+          <input type="hidden" {...register("youtubeUrl")} />
+          <YouTubeTrackPicker
+            value={youtubeUrl}
+            error={errors.youtubeUrl?.message}
+            onChange={(value) => setValue("youtubeUrl", value, { shouldDirty: true, shouldValidate: true })}
           />
         </div>
       </section>

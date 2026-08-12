@@ -1,110 +1,192 @@
 "use client";
 
-import { Music2, X } from "lucide-react";
+import { Music2, Pause, Play, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-type SpotifyController = {
-  addListener?: (event: "playback_started" | "ready", callback: () => void) => void;
+type YouTubePlayer = {
   destroy: () => void;
-  play: () => void;
+  getPlayerState: () => number;
+  mute: () => void;
+  pauseVideo: () => void;
+  playVideo: () => void;
+  setVolume: (volume: number) => void;
+  unMute: () => void;
 };
 
-type SpotifyIframeApi = {
-  createController: (
-    element: HTMLElement,
-    options: { height: number; uri: string; width: string },
-    callback: (controller: SpotifyController) => void,
-  ) => void;
-};
+type YouTubePlayerEvent = { target: YouTubePlayer };
+type YouTubePlayerConstructor = new (
+  element: HTMLElement,
+  options: {
+    events: {
+      onAutoplayBlocked?: (event: YouTubePlayerEvent) => void;
+      onReady: (event: YouTubePlayerEvent) => void;
+      onStateChange: (event: YouTubePlayerEvent & { data: number }) => void;
+    };
+    height: string;
+    playerVars: Record<string, number | string>;
+    videoId: string;
+    width: string;
+  },
+) => YouTubePlayer;
 
 declare global {
   interface Window {
-    onSpotifyIframeApiReady?: (api: SpotifyIframeApi) => void;
-    milanoraSpotifyIframeApi?: SpotifyIframeApi;
+    YT?: { Player: YouTubePlayerConstructor; PlayerState: { PLAYING: number } };
+    onYouTubeIframeAPIReady?: () => void;
   }
 }
 
-let spotifyApiPromise: Promise<SpotifyIframeApi> | null = null;
+let youtubeApiPromise: Promise<NonNullable<Window["YT"]>> | null = null;
 
-function loadSpotifyIframeApi() {
-  if (window.milanoraSpotifyIframeApi) return Promise.resolve(window.milanoraSpotifyIframeApi);
-  if (spotifyApiPromise) return spotifyApiPromise;
-
-  spotifyApiPromise = new Promise((resolve) => {
-    window.onSpotifyIframeApiReady = (api) => {
-      window.milanoraSpotifyIframeApi = api;
-      resolve(api);
+function loadYouTubeIframeApi() {
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (youtubeApiPromise) return youtubeApiPromise;
+  youtubeApiPromise = new Promise((resolve) => {
+    const previousReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.();
+      if (window.YT) resolve(window.YT);
     };
-
-    if (!document.querySelector('script[src="https://open.spotify.com/embed/iframe-api/v1"]')) {
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
       const script = document.createElement("script");
       script.async = true;
-      script.src = "https://open.spotify.com/embed/iframe-api/v1";
-      document.body.appendChild(script);
+      script.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(script);
     }
   });
-
-  return spotifyApiPromise;
+  return youtubeApiPromise;
 }
 
-export function StorySoundtrack({ trackId }: { trackId: string }) {
+export function StorySoundtrack({ videoId }: { videoId: string }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(true);
+  const playerRef = useRef<YouTubePlayer | null>(null);
+  const fadeTimerRef = useRef<number | null>(null);
+  const hasFadedInRef = useRef(false);
+  const [open, setOpen] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    let controller: SpotifyController | null = null;
+    let playbackUnlocked = false;
+
+    const clearFade = () => {
+      if (fadeTimerRef.current !== null) window.clearInterval(fadeTimerRef.current);
+      fadeTimerRef.current = null;
+    };
+
+    const fadeIn = (player: YouTubePlayer) => {
+      if (hasFadedInRef.current) return;
+      hasFadedInRef.current = true;
+      clearFade();
+      player.setVolume(2);
+      let volume = 2;
+      fadeTimerRef.current = window.setInterval(() => {
+        volume = Math.min(55, volume + 3);
+        player.setVolume(volume);
+        if (volume >= 55) clearFade();
+      }, 120);
+    };
+
     const requestPlayback = () => {
+      if (playbackUnlocked) return;
+      const player = playerRef.current;
+      if (!player) return;
       try {
-        controller?.play();
+        player.unMute();
+        setMuted(false);
+        player.playVideo();
+        fadeIn(player);
+        setAutoplayBlocked(false);
       } catch {
-        // A later visitor interaction retries playback when autoplay is blocked.
+        setAutoplayBlocked(true);
       }
+    };
+
+    const removeUnlockListeners = () => {
+      window.removeEventListener("pointerdown", requestPlayback, { capture: true });
+      window.removeEventListener("keydown", requestPlayback, { capture: true });
     };
 
     window.addEventListener("pointerdown", requestPlayback, { capture: true });
     window.addEventListener("keydown", requestPlayback, { capture: true });
 
-    void loadSpotifyIframeApi().then((api) => {
+    void loadYouTubeIframeApi().then((api) => {
       if (cancelled || !hostRef.current) return;
       hostRef.current.replaceChildren();
-      api.createController(
-        hostRef.current,
-        { height: 152, uri: `spotify:track:${trackId}`, width: "100%" },
-        (createdController) => {
-          if (cancelled) {
-            createdController.destroy();
-            return;
-          }
-          controller = createdController;
-          createdController.addListener?.("ready", requestPlayback);
-          requestPlayback();
+      playerRef.current = new api.Player(hostRef.current, {
+        height: "200",
+        width: "100%",
+        videoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          enablejsapi: 1,
+          playsinline: 1,
+          rel: 0,
+          origin: window.location.origin,
         },
-      );
+        events: {
+          onReady: ({ target }) => {
+            target.setVolume(2);
+            target.playVideo();
+          },
+          onStateChange: ({ data, target }) => {
+            const isPlaying = data === api.PlayerState.PLAYING;
+            setPlaying(isPlaying);
+            if (isPlaying) {
+              playbackUnlocked = true;
+              removeUnlockListeners();
+              fadeIn(target);
+            }
+          },
+          onAutoplayBlocked: () => setAutoplayBlocked(true),
+        },
+      });
     });
 
     return () => {
       cancelled = true;
-      window.removeEventListener("pointerdown", requestPlayback, { capture: true });
-      window.removeEventListener("keydown", requestPlayback, { capture: true });
-      controller?.destroy();
+      clearFade();
+      removeUnlockListeners();
+      playerRef.current?.destroy();
+      playerRef.current = null;
     };
-  }, [trackId]);
+  }, [videoId]);
+
+  const togglePlayback = () => {
+    const player = playerRef.current;
+    if (!player) return;
+    if (playing) player.pauseVideo();
+    else player.playVideo();
+  };
+
+  const toggleMute = () => {
+    const player = playerRef.current;
+    if (!player) return;
+    if (muted) {
+      player.unMute();
+      setMuted(false);
+    } else {
+      player.mute();
+      setMuted(true);
+    }
+  };
 
   return (
     <aside className={`music-player story-soundtrack${open ? " open" : ""}`} aria-label="Story soundtrack">
       <div className="music-player-panel" aria-hidden={!open}>
         <div className="music-player-heading">
-          <div>
-            <span>Soundtrack of this moment</span>
-            <strong>Listen while you read</strong>
-          </div>
-          <button type="button" onClick={() => setOpen(false)} aria-label="Hide story soundtrack">
-            <X aria-hidden="true" />
-          </button>
+          <div><span>Soundtrack of this moment</span><strong>Listen while you read</strong></div>
+          <button type="button" onClick={() => setOpen(false)} aria-label="Hide story soundtrack"><X aria-hidden="true" /></button>
         </div>
-        <div className="spotify-frame-host" ref={hostRef} />
-        <p className="soundtrack-note">Starts automatically. If the browser blocks sound, your first touch anywhere continues it.</p>
+        <div className="youtube-frame-host" ref={hostRef} />
+        <div className="story-soundtrack-controls">
+          <button type="button" onClick={togglePlayback}>{playing ? <Pause /> : <Play />}{playing ? "Pause" : "Play"}</button>
+          <button type="button" onClick={toggleMute}>{muted ? <VolumeX /> : <Volume2 />}{muted ? "Unmute" : "Mute"}</button>
+        </div>
+        {autoplayBlocked ? <p className="soundtrack-note">Your browser blocked autoplay. Touch anywhere once to continue the soundtrack.</p> : null}
       </div>
 
       <button
@@ -115,7 +197,7 @@ export function StorySoundtrack({ trackId }: { trackId: string }) {
         aria-expanded={open}
       >
         <Music2 aria-hidden="true" />
-        <span><small>Now playing</small>Story soundtrack</span>
+        <span><small>{playing ? "Now playing" : "Soundtrack"}</small>Story soundtrack</span>
       </button>
     </aside>
   );

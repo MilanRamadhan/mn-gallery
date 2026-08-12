@@ -109,7 +109,7 @@ export async function saveStoryAction(
     event_date: value.eventDate,
     location: value.location || null,
     quote: value.quote || null,
-    spotify_track_id: value.spotifyTrackId || null,
+    youtube_video_id: value.youtubeVideoId || null,
     cover_image_url: value.coverImageUrl,
     cover_storage_path: value.coverStoragePath || null,
     category_id: value.categoryId || null,
