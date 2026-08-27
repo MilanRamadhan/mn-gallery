@@ -136,10 +136,7 @@ export default async function PublicLetterPage(props: { params: Promise<{ slug: 
             fontSize: "0.9rem",
             letterSpacing: "0.05em",
             textTransform: "uppercase"
-          }}
-          onMouseOver={(e) => (e.currentTarget.style.opacity = "1")}
-          onMouseOut={(e) => (e.currentTarget.style.opacity = "0.7")}
-          >
+          }}>
             Walk through our story <ArrowRight size={16} />
           </Link>
         </div>
