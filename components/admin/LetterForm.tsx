@@ -79,10 +79,11 @@ export function LetterForm({
       setProgressLabel("Saving letter details");
       setProgress(96);
       
-      const { youtubeUrl: submittedYouTubeUrl, ...letterValues } = values;
+      const { youtubeUrl: submittedYouTubeUrl, excerpt, ...letterValues } = values;
       const input: LetterInput = {
         id: initialLetter?.id,
         ...letterValues,
+        excerpt: excerpt ?? "",
         youtubeVideoId: getYouTubeVideoId(submittedYouTubeUrl) ?? "",
         coverImageUrl: cover.imageUrl,
         coverStoragePath: cover.storagePath,
