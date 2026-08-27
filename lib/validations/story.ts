@@ -84,3 +84,35 @@ export const slugify = (value: string) =>
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+
+export const letterInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  title: z.string().trim().min(3, "Title must contain at least 3 characters.").max(120),
+  slug: z.string().trim().min(3).max(140).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens."),
+  excerpt: z.string().trim().min(12, "Write a slightly longer introduction.").max(320),
+  content: z.string().trim().min(30, "The letter needs at least 30 characters."),
+  letterDate: z.string().date("Choose a valid letter date."),
+  coverImageUrl: z.string().optional(),
+  coverStoragePath: z.string().optional(),
+  signature: z.string().trim().max(120).optional(),
+  youtubeVideoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/).optional().or(z.literal("")),
+  status: z.enum(["draft", "published"]),
+});
+
+export const letterFormSchema = letterInputSchema.pick({
+  title: true,
+  slug: true,
+  excerpt: true,
+  content: true,
+  letterDate: true,
+  signature: true,
+  status: true,
+}).extend({
+  youtubeUrl: z.string().trim().max(300).refine(
+    (value) => !value || Boolean(getYouTubeVideoId(value)),
+    "Choose a YouTube video or enter a valid YouTube video link.",
+  ),
+});
+
+export type LetterFormValues = z.infer<typeof letterFormSchema>;
+

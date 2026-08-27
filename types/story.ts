@@ -1,4 +1,5 @@
 export type StoryStatus = "draft" | "published";
+export type LetterStatus = StoryStatus;
 
 export type Category = {
   id: string;
@@ -120,3 +121,34 @@ export type StoryInput = {
 export type ActionResult<T = undefined> =
   | { success: true; data?: T; message: string }
   | { success: false; message: string; fieldErrors?: Record<string, string[]> };
+
+export type Letter = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  letter_date: string;
+  cover_image_url?: string | null;
+  cover_storage_path?: string | null;
+  signature?: string | null;
+  youtube_video_id?: string | null;
+  status: LetterStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LetterInput = {
+  id?: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  letterDate: string;
+  coverImageUrl?: string;
+  coverStoragePath?: string;
+  signature?: string;
+  youtubeVideoId?: string;
+  status: LetterStatus;
+};
+

@@ -49,11 +49,13 @@ export function ImageUploader({
   onCoverChange,
   images,
   onImagesChange,
+  hideGallery,
 }: {
   coverPreview: string;
   onCoverChange: (file: File, preview: string) => void;
   images: PendingImage[];
   onImagesChange: (images: PendingImage[]) => void;
+  hideGallery?: boolean;
 }) {
   const coverInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
@@ -186,25 +188,27 @@ export function ImageUploader({
           }}
         />
       </div>
-      <div className="gallery-upload-heading">
-        <div><h3>Additional photographs</h3><p>Each selected photo opens in the crop editor before captions are added.</p></div>
-        <button className="button outline" type="button" onClick={() => galleryInput.current?.click()}><ImagePlus size={16} />Add photos</button>
-        <input ref={galleryInput} type="file" multiple accept={uploadConfig.acceptedTypes.join(",")} hidden onChange={(event) => { addImages(event.target.files); event.currentTarget.value = ""; }} />
-        <input
-          ref={replaceGalleryInput}
-          type="file"
-          accept={uploadConfig.acceptedTypes.join(",")}
-          hidden
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            const replaceImageKey = replaceImageKeyRef.current;
-            if (file && replaceImageKey && validFile(file)) queueCrop(file, "gallery", replaceImageKey);
-            replaceImageKeyRef.current = null;
-            event.currentTarget.value = "";
-          }}
-        />
-      </div>
-      {images.length > 0 && (
+      {!hideGallery && (
+        <div className="gallery-upload-heading">
+          <div><h3>Additional photographs</h3><p>Each selected photo opens in the crop editor before captions are added.</p></div>
+          <button className="button outline" type="button" onClick={() => galleryInput.current?.click()}><ImagePlus size={16} />Add photos</button>
+          <input ref={galleryInput} type="file" multiple accept={uploadConfig.acceptedTypes.join(",")} hidden onChange={(event) => { addImages(event.target.files); event.currentTarget.value = ""; }} />
+          <input
+            ref={replaceGalleryInput}
+            type="file"
+            accept={uploadConfig.acceptedTypes.join(",")}
+            hidden
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              const replaceImageKey = replaceImageKeyRef.current;
+              if (file && replaceImageKey && validFile(file)) queueCrop(file, "gallery", replaceImageKey);
+              replaceImageKeyRef.current = null;
+              event.currentTarget.value = "";
+            }}
+          />
+        </div>
+      )}
+      {images.length > 0 && !hideGallery && (
         <div className="sortable-images">
           {images.map((image, index) => (
             <article key={image.key}>

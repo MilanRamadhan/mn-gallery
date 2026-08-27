@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenText, ExternalLink, FolderHeart, Images, LayoutGrid, LogOut, Menu, Settings, X } from "lucide-react";
+import { BookOpenText, ExternalLink, FolderHeart, Images, LayoutGrid, LogOut, Menu, Settings, X, Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 const links = [
   { href: "/admin", label: "Dashboard", icon: LayoutGrid },
   { href: "/admin/stories", label: "Stories", icon: BookOpenText },
+  { href: "/admin/letters", label: "Letters", icon: Mail },
   { href: "/admin/categories", label: "Categories", icon: FolderHeart },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
