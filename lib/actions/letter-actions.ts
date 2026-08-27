@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { revalidatePath, updateTag } from "next/cache";
 import { PUBLIC_LETTERS_TAG } from "@/lib/cache/tags";
@@ -60,7 +60,7 @@ export async function saveLetterAction(
   const record = {
     title: value.title,
     slug: value.slug,
-    excerpt: value.excerpt,
+    excerpt: value.excerpt || "",
     content: value.content,
     letter_date: value.letterDate,
     cover_image_url: value.coverImageUrl || null,
