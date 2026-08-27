@@ -1,4 +1,4 @@
-﻿import "server-only";
+import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { PUBLIC_LETTERS_TAG } from "@/lib/cache/tags";
@@ -45,30 +45,30 @@ const getCachedPublishedLetters = unstable_cache(
   { revalidate: 300, tags: [PUBLIC_LETTERS_TAG] },
 );
 
-const getCachedLetterBySlug = unstable_cache(
-  async (slug: string): Promise<Letter | null> => {
-    const supabase = createPublicClient();
-    if (!supabase) return null;
-    const { data, error } = await supabase
-      .from("letters")
-      .select(letterSelect)
-      .eq("slug", slug)
-      .eq("status", "published")
-      .maybeSingle();
-    if (error) return null;
-    return data as unknown as Letter | null;
-  },
-  ["milanora-letter-by-slug-v1"],
-  { revalidate: 300, tags: [PUBLIC_LETTERS_TAG] },
-);
+export function getLetterBySlug(slug: string) {
+  return unstable_cache(
+    async (): Promise<Letter | null> => {
+      const supabase = createPublicClient();
+      if (!supabase) return null;
+      const { data, error } = await supabase
+        .from("letters")
+        .select(letterSelect)
+        .eq("slug", slug)
+        .eq("status", "published")
+        .maybeSingle();
+      if (error) return null;
+      return data as unknown as Letter | null;
+    },
+    ["milanora-letter-by-slug-v2", slug],
+    { revalidate: 300, tags: [PUBLIC_LETTERS_TAG] },
+  )();
+}
 
 export function getPublishedLetters() {
   return getCachedPublishedLetters();
 }
 
-export function getLetterBySlug(slug: string) {
-  return getCachedLetterBySlug(slug);
-}
+// Legacy export removed since getLetterBySlug is now the direct function
 
 export async function getAdminLetters(): Promise<Letter[]> {
   const supabase = await createClient();
